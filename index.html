@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager Cloud - CoasinLogicalis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --logicalis-blue: #004a99;
+            --accent-blue: #00aef0;
+            --corp-gray: #58595b;
+            --corp-red: #e41613;
+            --refined-bg: #f8fafc;
+        }
+        body {
+            background-color: var(--refined-bg);
+            color: var(--corp-gray);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .bg-logicalis { background-color: var(--logicalis-blue); }
+        .text-logicalis { color: var(--logicalis-blue); }
+        .bg-accent { background-color: var(--accent-blue); }
+        .nav-link.active {
+            border-bottom: 3px solid var(--accent-blue);
+            color: var(--logicalis-blue);
+            font-weight: bold;
+        }
+        .kanban-column { min-height: 70vh; }
+        .task-card { cursor: grab; transition: all 0.2s; }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .loading-overlay {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.8);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading" class="loading-overlay">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-logicalis mb-4"></div>
+        <p class="text-sm font-bold text-logicalis">Sincronizando con la nube...</p>
+    </div>
+
+    <!-- Nav Bar -->
+    <nav class="bg-white shadow-md px-6 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center space-x-4">
+            <div id="logo-container" class="h-10 w-40 flex items-center justify-center border-r pr-4 border-gray-200">
+                <span id="placeholder-logo" class="text-xs font-bold text-gray-400">LOGO EMPRESA</span>
+                <img id="app-logo" class="hidden h-full object-contain" src="" alt="Logo">
+            </div>
+            <div class="flex space-x-6 ml-4">
+                <button onclick="showView('tasks')" id="nav-tasks" class="nav-link active py-2">Tareas</button>
+                <button onclick="showView('dashboard')" id="nav-dashboard" class="nav-link py-2">Dashboard KPIs</button>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <div id="sync-indicator" class="flex items-center text-[10px] font-bold text-green-500 bg-green-50 px-2 py-1 rounded-full mr-2">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1"></div>
+                NUBE ACTIVA
+            </div>
+            <button onclick="openTaskModal()" class="bg-accent text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition">
+                + Nueva Tarea
+            </button>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-6">
+        <!-- Area Selection -->
+        <div id="area-selection" class="flex flex-col items-center justify-center min-h-[60vh]">
+            <h1 class="text-3xl font-bold mb-12 text-logicalis">Selecciona tu área</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+                <button onclick="selectArea('Alianzas')" class="bg-white p-12 rounded-2xl shadow-xl hover:border-accent border-2 border-transparent transition text-center group">
+                    <div class="text-6xl mb-4 group-hover:scale-110 transition">🤝</div>
+                    <h2 class="text-4xl font-bold text-logicalis">Alianzas</h2>
+                </button>
+                <button onclick="selectArea('CCTN')" class="bg-white p-12 rounded-2xl shadow-xl hover:border-accent border-2 border-transparent transition text-center group">
+                    <div class="text-6xl mb-4 group-hover:scale-110 transition">⚙️</div>
+                    <h2 class="text-4xl font-bold text-logicalis">CCTN</h2>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tasks View -->
+        <div id="tasks-view" class="hidden">
+            <div class="flex items-center justify-between mb-8 bg-white p-4 rounded-xl shadow-sm">
+                <div class="flex items-center">
+                    <button onclick="backToAreas()" class="mr-4 p-2 hover:bg-gray-100 rounded-full transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <h1 id="current-area-title" class="text-2xl font-bold text-logicalis">Area</h1>
+                </div>
+                <div id="area-badge" class="px-4 py-1 rounded-full bg-logicalis text-white text-xs font-bold">ALIANZAS</div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <h3 class="font-bold text-sm uppercase text-gray-400 mb-4 px-2">Por Hacer (<span id="count-todo">0</span>)</h3>
+                    <div id="col-todo" ondrop="drop(event, 'todo')" ondragover="allowDrop(event)" class="kanban-column bg-gray-100 rounded-2xl p-4 space-y-4"></div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm uppercase text-accent mb-4 px-2">Haciendo (<span id="count-doing">0</span>)</h3>
+                    <div id="col-doing" ondrop="drop(event, 'doing')" ondragover="allowDrop(event)" class="kanban-column bg-blue-50 rounded-2xl p-4 space-y-4"></div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm uppercase text-green-600 mb-4 px-2">Hecho (<span id="count-done">0</span>)</h3>
+                    <div id="col-done" ondrop="drop(event, 'done')" ondragover="allowDrop(event)" class="kanban-column bg-green-50 rounded-2xl p-4 space-y-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard-view" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-logicalis">
+                    <p class="text-xs font-bold text-gray-400 uppercase">Total</p>
+                    <h2 id="kpi-total" class="text-3xl font-bold text-logicalis">0</h2>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-accent">
+                    <p class="text-xs font-bold text-gray-400 uppercase">Progreso</p>
+                    <h2 id="kpi-progress" class="text-3xl font-bold text-accent">0%</h2>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-red-500">
+                    <p class="text-xs font-bold text-gray-400 uppercase">Vencidas</p>
+                    <h2 id="kpi-overdue" class="text-3xl font-bold text-red-500">0</h2>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border-b-4 border-gray-400">
+                    <p class="text-xs font-bold text-gray-400 uppercase">A / C</p>
+                    <h2 id="kpi-ratio" class="text-3xl font-bold">0/0</h2>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm h-96"><canvas id="barChart"></canvas></div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm h-96"><canvas id="pieChart"></canvas></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="task-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-[100]">
+        <div class="bg-white w-full max-w-md rounded-2xl overflow-hidden shadow-2xl">
+            <div class="bg-logicalis p-4 text-white font-bold flex justify-between">
+                <span>Nueva Tarea</span>
+                <button onclick="closeTaskModal()">✕</button>
+            </div>
+            <form id="task-form" onsubmit="handleTaskSubmit(event)" class="p-6 space-y-4">
+                <input type="hidden" id="edit-id">
+                <input type="text" id="task-title" placeholder="Título" required class="w-full border p-3 rounded-lg">
+                <select id="task-area" class="w-full border p-3 rounded-lg">
+                    <option value="Alianzas">Alianzas</option>
+                    <option value="CCTN">CCTN</option>
+                </select>
+                <input type="date" id="task-date" required class="w-full border p-3 rounded-lg">
+                <textarea id="task-desc" placeholder="Descripción" class="w-full border p-3 rounded-lg"></textarea>
+                <div class="flex space-x-2">
+                    <button type="button" onclick="closeTaskModal()" class="flex-1 bg-gray-100 py-3 rounded-lg">Cancelar</button>
+                    <button type="submit" class="flex-1 bg-logicalis text-white py-3 rounded-lg font-bold">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Config
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'coasin-logicalis-v3';
+
+        let tasks = [];
+        let currentArea = null;
+        let barChart = null;
+        let pieChart = null;
+        let currentUser = null;
+
+        // --- AUTH INITIALIZATION ---
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth error:", err);
+            }
+        };
+
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                // Una vez autenticado, escuchamos los datos
+                const tasksRef = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
+                onSnapshot(tasksRef, (snapshot) => {
+                    tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    document.getElementById('loading').classList.add('hidden');
+                    
+                    // Refrescar vista actual
+                    if (currentArea) renderTasks();
+                    if (!document.getElementById('dashboard-view').classList.contains('hidden')) {
+                        updateKPIs();
+                        initCharts();
+                    }
+                }, (error) => {
+                    console.error("Error fetching tasks:", error);
+                });
+            }
+        });
+
+        // --- WINDOW EXPOSED FUNCTIONS ---
+        window.selectArea = (area) => {
+            currentArea = area;
+            document.getElementById('current-area-title').innerText = area;
+            document.getElementById('area-badge').innerText = area.toUpperCase();
+            showView('tasks');
+        };
+
+        window.showView = (viewId) => {
+            document.getElementById('area-selection').classList.add('hidden');
+            document.getElementById('tasks-view').classList.add('hidden');
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+
+            if (viewId === 'tasks' && currentArea) {
+                document.getElementById('tasks-view').classList.remove('hidden');
+                document.getElementById('nav-tasks').classList.add('active');
+                renderTasks();
+            } else if (viewId === 'dashboard') {
+                document.getElementById('dashboard-view').classList.remove('hidden');
+                document.getElementById('nav-dashboard').classList.add('active');
+                updateKPIs();
+                initCharts();
+            } else {
+                document.getElementById('area-selection').classList.remove('hidden');
+            }
+        };
+
+        window.backToAreas = () => { currentArea = null; showView('selection'); };
+
+        window.openTaskModal = () => {
+            document.getElementById('task-modal').classList.remove('hidden');
+            document.getElementById('task-modal').classList.add('flex');
+            if(currentArea) document.getElementById('task-area').value = currentArea;
+        };
+
+        window.closeTaskModal = () => {
+            document.getElementById('task-modal').classList.add('hidden');
+            document.getElementById('task-modal').classList.remove('flex');
+            document.getElementById('task-form').reset();
+            document.getElementById('edit-id').value = '';
+        };
+
+        window.handleTaskSubmit = async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const id = document.getElementById('edit-id').value || Date.now().toString();
+            const taskData = {
+                title: document.getElementById('task-title').value,
+                area: document.getElementById('task-area').value,
+                desc: document.getElementById('task-desc').value,
+                date: document.getElementById('task-date').value,
+                status: document.getElementById('edit-id').value ? tasks.find(t => t.id === id).status : 'todo'
+            };
+            
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), taskData, { merge: true });
+                closeTaskModal();
+            } catch (err) {
+                console.error("Save error:", err);
+            }
+        };
+
+        window.deleteTask = async (id) => {
+            if (!currentUser) return;
+            if(confirm('¿Eliminar tarea de forma permanente?')) {
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id));
+                } catch (err) {
+                    console.error("Delete error:", err);
+                }
+            }
+        };
+
+        window.editTask = (id) => {
+            const t = tasks.find(x => x.id == id);
+            if (!t) return;
+            document.getElementById('edit-id').value = t.id;
+            document.getElementById('task-title').value = t.title;
+            document.getElementById('task-area').value = t.area;
+            document.getElementById('task-desc').value = t.desc;
+            document.getElementById('task-date').value = t.date;
+            openTaskModal();
+        };
+
+        window.allowDrop = (ev) => ev.preventDefault();
+        window.drag = (ev, id) => ev.dataTransfer.setData("text", id);
+        window.drop = async (ev, status) => {
+            ev.preventDefault();
+            if (!currentUser) return;
+            const id = ev.dataTransfer.getData("text");
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { status }, { merge: true });
+            } catch (err) {
+                console.error("Drop error:", err);
+            }
+        };
+
+        function renderTasks() {
+            const cols = { todo: 'col-todo', doing: 'col-doing', done: 'col-done' };
+            Object.values(cols).forEach(id => document.getElementById(id).innerHTML = '');
+            
+            let counts = { todo: 0, doing: 0, done: 0 };
+            tasks.filter(t => t.area === currentArea).forEach(t => {
+                counts[t.status]++;
+                const isOverdue = new Date(t.date) < new Date().setHours(0,0,0,0) && t.status !== 'done';
+                const card = document.createElement('div');
+                card.className = `task-card bg-white p-4 rounded-xl shadow-sm border ${isOverdue ? 'border-l-4 border-l-red-500' : ''}`;
+                card.draggable = true;
+                card.ondragstart = (e) => drag(e, t.id);
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h4 class="font-bold text-sm">${t.title}</h4>
+                        <div class="flex space-x-1">
+                            <button onclick="editTask('${t.id}')" class="text-gray-300 hover:text-blue-500">✎</button>
+                            <button onclick="deleteTask('${t.id}')" class="text-gray-300 hover:text-red-500">✕</button>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-1 line-clamp-1">${t.desc || ''}</p>
+                    <p class="text-[10px] font-bold mt-3 ${isOverdue ? 'text-red-500' : 'text-gray-400'}">📅 ${t.date}</p>
+                `;
+                document.getElementById(cols[t.status]).appendChild(card);
+            });
+            Object.keys(counts).forEach(k => document.getElementById(`count-${k}`).innerText = counts[k]);
+        }
+
+        function updateKPIs() {
+            const total = tasks.length;
+            const done = tasks.filter(t => t.status === 'done').length;
+            const overdue = tasks.filter(t => new Date(t.date) < new Date().setHours(0,0,0,0) && t.status !== 'done').length;
+            const alianzas = tasks.filter(t => t.area === 'Alianzas').length;
+            const cctn = tasks.filter(t => t.area === 'CCTN').length;
+
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-progress').innerText = total === 0 ? '0%' : Math.round((done/total)*100) + '%';
+            document.getElementById('kpi-overdue').innerText = overdue;
+            document.getElementById('kpi-ratio').innerText = `${alianzas}/${cctn}`;
+        }
+
+        function initCharts() {
+            const statusLabels = ['Pendiente', 'En Curso', 'Hecho'];
+            const statusData = ['todo', 'doing', 'done'].map(s => tasks.filter(t => t.status === s).length);
+            
+            if (barChart) barChart.destroy();
+            const ctxBar = document.getElementById('barChart');
+            if (!ctxBar) return;
+            barChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{ label: 'Tareas', data: statusData, backgroundColor: ['#58595b', '#00aef0', '#10b981'], borderRadius: 6 }]
+                },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            if (pieChart) pieChart.destroy();
+            const ctxPie = document.getElementById('pieChart');
+            if (!ctxPie) return;
+            pieChart = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Alianzas', 'CCTN'],
+                    datasets: [{ data: [tasks.filter(t => t.area === 'Alianzas').length, tasks.filter(t => t.area === 'CCTN').length], backgroundColor: ['#004a99', '#e41613'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+            });
+        }
+    </script>
+</body>
+</html>
