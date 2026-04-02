@@ -11,111 +11,238 @@
             --logicalis-blue: #004a99;
             --accent-blue: #00aef0;
             --corp-gray: #58595b;
+            --corp-red: #e41613;
             --refined-bg: #f8fafc;
         }
-        body { background-color: var(--refined-bg); color: var(--corp-gray); font-family: sans-serif; }
+        body {
+            background-color: var(--refined-bg);
+            color: var(--corp-gray);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
         .bg-logicalis { background-color: var(--logicalis-blue); }
-        .nav-link.active { border-bottom: 3px solid var(--accent-blue); color: var(--logicalis-blue); font-weight: bold; }
-        .kanban-column { min-height: 70vh; }
-        .task-card { cursor: grab; transition: all 0.2s; border-radius: 0.75rem; }
-        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .text-logicalis { color: var(--logicalis-blue); }
+        .bg-accent { background-color: var(--accent-blue); }
+        .border-accent { border-color: var(--accent-blue); }
+        .text-red-corp { color: var(--corp-red); }
+        .bg-red-corp { background-color: var(--corp-red); }
+        
+        .kanban-column {
+            min-height: 70vh;
+            transition: background-color 0.2s;
+        }
+        .task-card {
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .task-card:active { cursor: grabbing; }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        
+        .nav-link.active {
+            border-bottom: 3px solid var(--accent-blue);
+            color: var(--logicalis-blue);
+            font-weight: bold;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--corp-gray); }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.9);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;
+        }
     </style>
 </head>
 <body>
 
-    <div id="loading" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-[1000]">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-        <p class="text-blue-600 font-bold">Conectando a Firebase...</p>
+    <!-- Pantalla de carga -->
+    <div id="loading" class="loading-overlay">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-logicalis mb-4"></div>
+        <p class="text-sm font-bold text-logicalis uppercase tracking-widest">Sincronizando con la nube...</p>
     </div>
 
+    <!-- Top Navigation Bar -->
     <nav class="bg-white shadow-md px-6 py-3 flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center space-x-6">
-            <span class="font-bold text-logicalis">GESTOR CLOUD</span>
-            <button onclick="showView('tasks')" id="nav-tasks" class="nav-link active py-2">Tareas</button>
-            <button onclick="showView('dashboard')" id="nav-dashboard" class="nav-link py-2">Dashboard</button>
+        <div class="flex items-center space-x-4">
+            <div id="logo-container" class="h-10 w-40 flex items-center justify-center border-r pr-4 border-gray-200">
+                <span id="placeholder-logo" class="text-xs font-bold text-gray-400">LOGO EMPRESA</span>
+                <img id="app-logo" class="hidden h-full object-contain" src="" alt="Logo">
+            </div>
+            <div class="flex space-x-6 ml-4">
+                <button onclick="showView('tasks')" id="nav-tasks" class="nav-link active py-2">Tareas</button>
+                <button onclick="showView('dashboard')" id="nav-dashboard" class="nav-link py-2">Dashboard KPIs</button>
+            </div>
         </div>
-        <button onclick="openTaskModal()" class="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600">+ Nueva</button>
+        
+        <div class="flex items-center space-x-3">
+            <!-- Indicador de Nube (Reemplaza a Importar/Exportar) -->
+            <div class="flex items-center text-xs font-bold text-green-600 bg-green-50 px-3 py-2 rounded-lg border border-green-100 mr-2">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
+                NUBE ACTIVA
+            </div>
+
+            <label class="cursor-pointer bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg text-sm flex items-center transition">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Logo
+                <input type="file" id="logo-input" class="hidden" accept="image/*">
+            </label>
+            <button onclick="openTaskModal()" class="bg-accent text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition shadow-sm">
+                + Nueva Tarea
+            </button>
+        </div>
     </nav>
 
+    <!-- Main Content Area -->
     <main class="container mx-auto p-6">
-        <div id="area-selection" class="flex flex-col items-center justify-center min-h-[60vh]">
-            <h1 class="text-2xl font-bold mb-8 text-center text-logicalis">Bienvenido al Gestor de Tareas</h1>
-            <p class="mb-8 text-gray-500">Selecciona tu área de trabajo para comenzar</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-                <button onclick="selectArea('Alianzas')" class="bg-white p-10 rounded-2xl shadow-lg border-2 border-transparent hover:border-blue-400 transition transform hover:scale-105">
-                    <span class="text-5xl block mb-2">🤝</span> <span class="font-bold">Alianzas</span>
+        
+        <!-- Area Selection Screen -->
+        <div id="area-selection" class="flex flex-col items-center justify-center min-h-[60vh] hidden">
+            <h1 class="text-3xl font-bold mb-12 text-logicalis">Selecciona tu área de trabajo</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+                <button onclick="selectArea('Alianzas')" class="bg-white p-12 rounded-2xl shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-accent transition group text-center">
+                    <div class="text-6xl mb-4 group-hover:scale-110 transition">🤝</div>
+                    <h2 class="text-4xl font-bold text-logicalis">Alianzas</h2>
+                    <p class="text-gray-500 mt-2 text-lg">Relaciones estratégicas</p>
                 </button>
-                <button onclick="selectArea('CCTN')" class="bg-white p-10 rounded-2xl shadow-lg border-2 border-transparent hover:border-blue-400 transition transform hover:scale-105">
-                    <span class="text-5xl block mb-2">⚙️</span> <span class="font-bold">CCTN</span>
+                <button onclick="selectArea('CCTN')" class="bg-white p-12 rounded-2xl shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-accent transition group text-center">
+                    <div class="text-6xl mb-4 group-hover:scale-110 transition">⚙️</div>
+                    <h2 class="text-4xl font-bold text-logicalis">CCTN</h2>
+                    <p class="text-gray-500 mt-2 text-lg">Centro de Competencias</p>
                 </button>
             </div>
         </div>
 
+        <!-- Tasks View -->
         <div id="tasks-view" class="hidden">
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center justify-between mb-8 bg-white p-4 rounded-xl shadow-sm">
                 <div class="flex items-center">
-                    <button onclick="backToAreas()" class="mr-4 text-gray-500 hover:text-blue-600">← Volver</button>
-                    <h1 id="current-area-title" class="text-xl font-bold text-logicalis">Area</h1>
+                    <button onclick="backToAreas()" class="mr-4 p-2 hover:bg-gray-100 rounded-full transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <div>
+                        <h1 id="current-area-title" class="text-2xl font-bold text-logicalis leading-none">Area</h1>
+                        <p class="text-xs text-gray-400 mt-1 uppercase tracking-widest font-bold">Panel de Control</p>
+                    </div>
                 </div>
-                <div id="sync-status" class="text-[10px] text-green-500 font-bold flex items-center">
-                    <div class="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></div> EN LÍNEA
-                </div>
+                <div id="area-badge" class="px-6 py-2 rounded-full bg-logicalis text-white text-xs font-black tracking-tighter">ALIANZAS</div>
             </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Columnas Kanban -->
                 <div class="flex flex-col">
-                    <h3 class="text-xs font-bold uppercase mb-4 text-gray-400 px-2 text-center">Por Hacer</h3>
-                    <div id="col-todo" ondrop="drop(event, 'todo')" ondragover="allowDrop(event)" class="kanban-column bg-gray-100 p-4 rounded-2xl space-y-3"></div>
+                    <div class="flex items-center justify-between mb-4 px-2">
+                        <h3 class="font-bold text-sm uppercase tracking-widest text-gray-500">Por Hacer</h3>
+                        <span id="count-todo" class="bg-gray-200 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
+                    </div>
+                    <div id="col-todo" ondrop="drop(event, 'todo')" ondragover="allowDrop(event)" class="kanban-column bg-gray-200/30 rounded-2xl p-4 space-y-4 border-2 border-dashed border-gray-300/50"></div>
                 </div>
+
                 <div class="flex flex-col">
-                    <h3 class="text-xs font-bold uppercase mb-4 text-blue-500 px-2 text-center">Haciendo</h3>
-                    <div id="col-doing" ondrop="drop(event, 'doing')" ondragover="allowDrop(event)" class="kanban-column bg-blue-50 p-4 rounded-2xl space-y-3"></div>
+                    <div class="flex items-center justify-between mb-4 px-2">
+                        <h3 class="font-bold text-sm uppercase tracking-widest text-accent">Haciendo</h3>
+                        <span id="count-doing" class="bg-blue-100 text-accent px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
+                    </div>
+                    <div id="col-doing" ondrop="drop(event, 'doing')" ondragover="allowDrop(event)" class="kanban-column bg-blue-50/50 rounded-2xl p-4 space-y-4 border-2 border-dashed border-blue-200/50"></div>
                 </div>
+
                 <div class="flex flex-col">
-                    <h3 class="text-xs font-bold uppercase mb-4 text-green-600 px-2 text-center">Hecho</h3>
-                    <div id="col-done" ondrop="drop(event, 'done')" ondragover="allowDrop(event)" class="kanban-column bg-green-50 p-4 rounded-2xl space-y-3"></div>
+                    <div class="flex items-center justify-between mb-4 px-2">
+                        <h3 class="font-bold text-sm uppercase tracking-widest text-green-600">Hecho</h3>
+                        <span id="count-done" class="bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
+                    </div>
+                    <div id="col-done" ondrop="drop(event, 'done')" ondragover="allowDrop(event)" class="kanban-column bg-green-50/50 rounded-2xl p-4 space-y-4 border-2 border-dashed border-green-200/50"></div>
                 </div>
             </div>
         </div>
 
+        <!-- Dashboard View -->
         <div id="dashboard-view" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="bg-white p-6 rounded-2xl shadow h-80">
-                    <h3 class="text-sm font-bold mb-4 text-center">Estado de Tareas</h3>
-                    <canvas id="barChart"></canvas>
+            <h1 class="text-3xl font-bold text-logicalis mb-8 text-center uppercase tracking-tighter">Análisis de Desempeño</h1>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-logicalis">
+                    <p class="text-xs font-black text-gray-400 uppercase mb-1">Total Tareas</p>
+                    <h2 id="kpi-total" class="text-4xl font-bold text-logicalis">0</h2>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow h-80">
-                    <h3 class="text-sm font-bold mb-4 text-center">Distribución por Área</h3>
-                    <canvas id="pieChart"></canvas>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-accent">
+                    <p class="text-xs font-black text-gray-400 uppercase mb-1">Progreso</p>
+                    <h2 id="kpi-progress" class="text-4xl font-bold text-accent">0%</h2>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-red-corp">
+                    <p class="text-xs font-black text-gray-400 uppercase mb-1">Vencidas</p>
+                    <h2 id="kpi-overdue" class="text-4xl font-bold text-red-corp">0</h2>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-b-4 border-gray-400">
+                    <p class="text-xs font-black text-gray-400 uppercase mb-1">CCTN vs Alianzas</p>
+                    <h2 id="kpi-ratio" class="text-2xl font-bold text-gray-700">0/0</h2>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-3xl shadow-md h-[450px]">
+                    <h3 class="font-bold text-lg mb-6 text-gray-800">Estado de Proyectos</h3>
+                    <div class="h-80"><canvas id="barChart"></canvas></div>
+                </div>
+                <div class="bg-white p-8 rounded-3xl shadow-md h-[450px]">
+                    <h3 class="font-bold text-lg mb-6 text-gray-800">Distribución de Carga (%)</h3>
+                    <div class="h-80"><canvas id="pieChart"></canvas></div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Modal -->
-    <div id="task-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[100] backdrop-blur-sm">
-        <div class="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl">
-            <div class="bg-logicalis p-4 text-white font-bold">Nueva Tarea</div>
-            <form onsubmit="handleTaskSubmit(event)" class="p-6 space-y-4">
-                <input type="text" id="task-title" placeholder="¿Qué hay que hacer?" required class="w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none">
-                <select id="task-area" class="w-full border p-3 rounded-xl outline-none">
-                    <option value="Alianzas">Alianzas</option>
-                    <option value="CCTN">CCTN</option>
-                </select>
-                <input type="date" id="task-date" required class="w-full border p-3 rounded-xl outline-none">
-                <div class="flex space-x-2 pt-2">
-                    <button type="button" onclick="closeTaskModal()" class="flex-1 bg-gray-100 py-3 rounded-xl font-bold hover:bg-gray-200">Cancelar</button>
-                    <button type="submit" class="flex-1 bg-logicalis text-white py-3 rounded-xl font-bold shadow-lg hover:opacity-90">Guardar</button>
-                </div>
-            </form>
+    <!-- Task Modal -->
+    <div id="task-modal" class="fixed inset-0 bg-logicalis/40 backdrop-blur-sm hidden items-center justify-center z-[100] p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-white">
+            <div class="bg-logicalis p-6 flex justify-between items-center text-white">
+                <h3 class="text-xl font-bold">Detalle de Tarea</h3>
+                <button onclick="closeTaskModal()" class="hover:bg-white/20 p-2 rounded-full transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-8">
+                <form id="task-form" onsubmit="handleTaskSubmit(event)" class="space-y-5">
+                    <input type="hidden" id="edit-id">
+                    <div>
+                        <label class="block text-xs font-black text-gray-400 uppercase mb-2">Título del requerimiento</label>
+                        <input type="text" id="task-title" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent transition">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-black text-gray-400 uppercase mb-2">Área Responsable</label>
+                            <select id="task-area" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent transition">
+                                <option value="Alianzas">Alianzas</option>
+                                <option value="CCTN">CCTN</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-black text-gray-400 uppercase mb-2">Vencimiento</label>
+                            <input type="date" id="task-date" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent transition">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-gray-400 uppercase mb-2">Descripción detallada</label>
+                        <textarea id="task-desc" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent transition"></textarea>
+                    </div>
+                    <div class="pt-4 flex space-x-3">
+                        <button type="button" onclick="closeTaskModal()" class="flex-1 bg-gray-100 text-gray-500 py-4 rounded-2xl font-bold hover:bg-gray-200 transition">Descartar</button>
+                        <button type="submit" class="flex-1 bg-logicalis text-white py-4 rounded-2xl font-bold hover:shadow-lg transition">Confirmar</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
+    <!-- Firebase SDK (Configuración real del usuario) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // CONFIGURACIÓN REAL DE FIREBASE (Verificada por el usuario)
+        // CONFIGURACIÓN DE FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyBHV61Lh6QefR1AgHMwte6051Xaydij3Iw",
             authDomain: "gestor-de-tareas-249cd.firebaseapp.com",
@@ -131,179 +258,280 @@
 
         let tasks = [];
         let currentArea = null;
-        let charts = { bar: null, pie: null };
+        let barChart = null;
+        let pieChart = null;
 
-        // Función para manejar el estado de autenticación y carga de datos
+        const LOGO_KEY = 'coasin_logo_v2'; // Mantenemos el logo en localStorage por eficiencia
+
+        // --- Inicialización y Escucha de Firebase ---
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 try {
                     await signInAnonymously(auth);
                 } catch (e) {
-                    console.error("Error de autenticación:", e);
-                    if (e.code === 'auth/configuration-not-found') {
-                        alert("⚠️ ERROR CRÍTICO: Debes activar 'Anónimo' en la consola de Firebase.\n\nPasos:\n1. Ve a console.firebase.google.com\n2. Sección 'Authentication' > 'Sign-in method'\n3. Botón 'Agregar nuevo proveedor'\n4. Selecciona 'Anónimo' y dale a Habilitar.");
-                    }
+                    console.error("Error Auth:", e);
                 }
             } else {
-                // Escuchar datos en tiempo real de Firestore
+                // Escuchar tareas en tiempo real
                 onSnapshot(collection(db, 'gestor_tareas'), (snapshot) => {
                     tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    // Ocultar pantalla de carga
                     document.getElementById('loading').classList.add('hidden');
-                    if (currentArea) renderTasks();
-                    if (!document.getElementById('dashboard-view').classList.contains('hidden')) updateCharts();
-                }, (error) => {
-                    console.error("Error de Firestore:", error);
-                    alert("Error de permisos: Ve a Firestore > Reglas y cambia a 'allow read, write: if true;'");
+                    if (!currentArea && document.getElementById('dashboard-view').classList.contains('hidden')) {
+                        document.getElementById('area-selection').classList.remove('hidden');
+                    }
+                    
+                    if (currentArea) window.renderTasks();
+                    if (!document.getElementById('dashboard-view').classList.contains('hidden')) {
+                        window.updateKPIs();
+                        window.initCharts();
+                    }
                 });
             }
         });
 
-        window.selectArea = (area) => { 
-            currentArea = area; 
-            document.getElementById('current-area-title').innerText = area; 
-            showView('tasks'); 
+        // Cargar logo al inicio
+        window.onload = () => {
+            const savedLogo = localStorage.getItem(LOGO_KEY);
+            if (savedLogo) {
+                const logoImg = document.getElementById('app-logo');
+                const placeholder = document.getElementById('placeholder-logo');
+                logoImg.src = savedLogo;
+                logoImg.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            }
         };
 
-        window.showView = (viewId) => {
+        // --- Lógica de Vistas (Expuesta a Window por usar type="module") ---
+        window.showView = function(viewId) {
             document.getElementById('area-selection').classList.add('hidden');
             document.getElementById('tasks-view').classList.add('hidden');
             document.getElementById('dashboard-view').classList.add('hidden');
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
 
-            if (viewId === 'tasks' && currentArea) {
-                document.getElementById('tasks-view').classList.remove('hidden');
-                document.getElementById('nav-tasks').classList.add('active');
-                renderTasks();
+            if (viewId === 'tasks') {
+                if (!currentArea) {
+                    document.getElementById('area-selection').classList.remove('hidden');
+                } else {
+                    document.getElementById('tasks-view').classList.remove('hidden');
+                    document.getElementById('nav-tasks').classList.add('active');
+                    window.renderTasks();
+                }
             } else if (viewId === 'dashboard') {
                 document.getElementById('dashboard-view').classList.remove('hidden');
                 document.getElementById('nav-dashboard').classList.add('active');
-                updateCharts();
-            } else {
-                document.getElementById('area-selection').classList.remove('hidden');
+                window.updateKPIs();
+                window.initCharts();
             }
         };
 
-        window.backToAreas = () => { currentArea = null; showView('selection'); };
-        window.openTaskModal = () => document.getElementById('task-modal').classList.replace('hidden', 'flex');
-        window.closeTaskModal = () => document.getElementById('task-modal').classList.replace('flex', 'hidden');
+        window.selectArea = function(area) {
+            currentArea = area;
+            document.getElementById('current-area-title').innerText = area;
+            document.getElementById('area-badge').innerText = area.toUpperCase();
+            window.showView('tasks');
+        };
 
-        window.handleTaskSubmit = async (e) => {
+        window.backToAreas = function() {
+            currentArea = null;
+            window.showView('tasks');
+        };
+
+        // --- Gestión de Tareas ---
+        window.openTaskModal = function() {
+            document.getElementById('task-modal').classList.remove('hidden');
+            document.getElementById('task-modal').classList.add('flex');
+            if(currentArea) document.getElementById('task-area').value = currentArea;
+        };
+
+        window.closeTaskModal = function() {
+            document.getElementById('task-modal').classList.add('hidden');
+            document.getElementById('task-modal').classList.remove('flex');
+            document.getElementById('task-form').reset();
+            document.getElementById('edit-id').value = '';
+        };
+
+        window.handleTaskSubmit = async function(e) {
             e.preventDefault();
-            const id = Date.now().toString();
+            const id = document.getElementById('edit-id').value || Date.now().toString();
+            const isEditing = !!document.getElementById('edit-id').value;
+            
             const data = {
                 title: document.getElementById('task-title').value,
                 area: document.getElementById('task-area').value,
-                date: document.getElementById('task-date').value,
-                status: 'todo',
-                createdAt: new Date().toISOString()
+                desc: document.getElementById('task-desc').value,
+                date: document.getElementById('task-date').value
             };
-            try {
-                await setDoc(doc(db, 'gestor_tareas', id), data);
-                closeTaskModal();
-                e.target.reset();
-            } catch (e) {
-                console.error("Error al guardar:", e);
-                alert("No se pudo guardar la tarea. Revisa la consola.");
-            }
-        };
-
-        window.deleteTask = async (id) => {
-            if(confirm("¿Deseas eliminar esta tarea permanentemente?")) {
-                try {
-                    await deleteDoc(doc(db, 'gestor_tareas', id));
-                } catch (e) {
-                    console.error("Error al eliminar:", e);
-                }
-            }
-        };
-
-        window.allowDrop = (ev) => ev.preventDefault();
-        window.drag = (ev, id) => ev.dataTransfer.setData("text", id);
-        window.drop = async (ev, status) => {
-            ev.preventDefault();
-            const id = ev.dataTransfer.getData("text");
-            try {
-                await setDoc(doc(db, 'gestor_tareas', id), { status }, { merge: true });
-            } catch (e) {
-                console.error("Error al actualizar estado:", e);
-            }
-        };
-
-        function renderTasks() {
-            const cols = { todo: 'col-todo', doing: 'col-doing', done: 'col-done' };
-            Object.values(cols).forEach(id => {
-                const el = document.getElementById(id);
-                el.innerHTML = "";
-            });
             
-            tasks.filter(t => t.area === currentArea).forEach(t => {
+            if(!isEditing) data.status = 'todo'; // Solo setear 'todo' si es nueva
+
+            // 1. Cerramos el modal inmediatamente para evitar clics múltiples
+            window.closeTaskModal();
+
+            // 2. Guardamos en la base de datos en segundo plano
+            try {
+                await setDoc(doc(db, 'gestor_tareas', id), data, { merge: true });
+            } catch (err) {
+                console.error("Error al guardar:", err);
+                alert("Hubo un problema de conexión al guardar la tarea.");
+            }
+        };
+
+        window.renderTasks = function() {
+            const cols = { todo: 'col-todo', doing: 'col-doing', done: 'col-done' };
+            const counts = { todo: 'count-todo', doing: 'count-doing', done: 'count-done' };
+            Object.values(cols).forEach(id => document.getElementById(id).innerHTML = '');
+            
+            const areaTasks = tasks.filter(t => t.area === currentArea);
+            const stats = { todo: 0, doing: 0, done: 0 };
+
+            areaTasks.forEach(t => {
+                const isOverdue = new Date(t.date) < new Date().setHours(0,0,0,0) && t.status !== 'done';
                 const card = document.createElement('div');
-                card.className = "task-card bg-white p-4 shadow-sm text-sm border border-gray-100 relative group";
+                card.className = `task-card bg-white p-5 rounded-2xl shadow-sm border border-gray-100 ${isOverdue ? 'border-l-4 border-l-[#e41613]' : ''}`;
                 card.draggable = true;
-                card.ondragstart = (e) => drag(e, t.id);
+                card.ondragstart = (e) => window.drag(e, t.id);
+                
                 card.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <span class="font-bold text-gray-700">${t.title}</span>
-                        <button onclick="deleteTask('${t.id}')" class="text-gray-300 hover:text-red-500 transition ml-2">✕</button>
+                    <div class="flex justify-between items-start mb-3">
+                        <h4 class="font-bold text-gray-800 leading-snug">${t.title}</h4>
+                        <div class="flex space-x-1">
+                            <button onclick="editTask('${t.id}')" class="text-gray-300 hover:text-accent p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                            <button onclick="deleteTask('${t.id}')" class="text-gray-300 hover:text-red-500 p-1"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path></svg></button>
+                        </div>
                     </div>
-                    <div class="text-[10px] text-gray-400 mt-2 flex items-center justify-between">
-                        <span>📅 ${t.date}</span>
-                        <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-500">${t.area}</span>
+                    <p class="text-xs text-gray-400 mb-4 line-clamp-2">${t.desc || '...'}</p>
+                    <div class="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter">
+                        <span class="${isOverdue ? 'text-red-corp' : 'text-gray-400'} flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            ${t.date}
+                        </span>
+                        <span class="px-2 py-0.5 bg-gray-100 rounded text-gray-500">${t.area}</span>
                     </div>
                 `;
                 document.getElementById(cols[t.status]).appendChild(card);
+                stats[t.status]++;
             });
-        }
 
-        function updateCharts() {
+            Object.keys(counts).forEach(k => document.getElementById(counts[k]).innerText = stats[k]);
+        };
+
+        window.editTask = function(id) {
+            const t = tasks.find(x => x.id === id);
+            if (!t) return;
+            document.getElementById('edit-id').value = t.id;
+            document.getElementById('task-title').value = t.title;
+            document.getElementById('task-area').value = t.area;
+            document.getElementById('task-desc').value = t.desc;
+            document.getElementById('task-date').value = t.date;
+            window.openTaskModal();
+        };
+
+        window.deleteTask = async function(id) {
+            if(confirm('¿Eliminar tarea de forma permanente?')) {
+                await deleteDoc(doc(db, 'gestor_tareas', id));
+            }
+        };
+
+        // --- Drag & Drop ---
+        window.allowDrop = function(ev) { ev.preventDefault(); };
+        window.drag = function(ev, id) { ev.dataTransfer.setData("text", id); };
+        window.drop = async function(ev, status) {
+            ev.preventDefault();
+            const id = ev.dataTransfer.getData("text");
+            if (id) {
+                await setDoc(doc(db, 'gestor_tareas', id), { status }, { merge: true });
+            }
+        };
+
+        // --- Dashboard & Charts ---
+        window.updateKPIs = function() {
+            const total = tasks.length;
+            const done = tasks.filter(t => t.status === 'done').length;
+            const overdue = tasks.filter(t => new Date(t.date) < new Date().setHours(0,0,0,0) && t.status !== 'done').length;
+            const alianzas = tasks.filter(t => t.area === 'Alianzas').length;
+            const cctn = tasks.filter(t => t.area === 'CCTN').length;
+
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-progress').innerText = total === 0 ? '0%' : Math.round((done/total)*100) + '%';
+            document.getElementById('kpi-overdue').innerText = overdue;
+            document.getElementById('kpi-ratio').innerText = `${alianzas}/${cctn}`;
+        };
+
+        window.initCharts = function() {
             const statusData = ['todo', 'doing', 'done'].map(s => tasks.filter(t => t.status === s).length);
             const areaData = ['Alianzas', 'CCTN'].map(a => tasks.filter(t => t.area === a).length);
+            const areaTotal = areaData.reduce((a,b)=>a+b, 0);
 
-            if (charts.bar) charts.bar.destroy();
+            if (barChart) barChart.destroy();
             const ctxBar = document.getElementById('barChart');
             if (ctxBar) {
-                charts.bar = new Chart(ctxBar, {
+                barChart = new Chart(ctxBar, {
                     type: 'bar',
                     data: {
-                        labels: ['Pendiente', 'En Progreso', 'Hecho'],
-                        datasets: [{ 
-                            label: 'Cantidad de Tareas', 
-                            data: statusData, 
-                            backgroundColor: ['#94a3b8', '#3b82f6', '#22c55e'],
-                            borderRadius: 8
+                        labels: ['Pendiente', 'En Curso', 'Completado'],
+                        datasets: [{
+                            data: statusData,
+                            backgroundColor: ['#58595b', '#00aef0', '#10b981'],
+                            borderRadius: 8,
+                            barThickness: 24
                         }]
                     },
                     options: { 
+                        indexAxis: 'y',
                         responsive: true, 
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { display: false } }, 
+                        scales: { 
+                            x: { beginAtZero: true, grid: { display: false } }, 
+                            y: { grid: { display: false } } 
+                        } 
                     }
                 });
             }
 
-            if (charts.pie) charts.pie.destroy();
+            if (pieChart) pieChart.destroy();
             const ctxPie = document.getElementById('pieChart');
             if (ctxPie) {
-                charts.pie = new Chart(ctxPie, {
+                pieChart = new Chart(ctxPie, {
                     type: 'doughnut',
                     data: {
                         labels: ['Alianzas', 'CCTN'],
-                        datasets: [{ 
-                            data: areaData, 
-                            backgroundColor: ['#004a99', '#00aef0'],
-                            borderWidth: 0
+                        datasets: [{
+                            data: areaData,
+                            backgroundColor: ['#004a99', '#e41613'],
+                            borderWidth: 8,
+                            borderColor: '#ffffff'
                         }]
                     },
                     options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false,
-                        cutout: '70%',
-                        plugins: { legend: { position: 'bottom' } }
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { position: 'bottom' },
+                            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${Math.round((ctx.raw/areaTotal)*100)}%` } }
+                        },
+                        cutout: '70%'
                     }
                 });
             }
-        }
+        };
+
+        // --- Persistencia de Logo en Local ---
+        document.getElementById('logo-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    localStorage.setItem(LOGO_KEY, ev.target.result);
+                    const img = document.getElementById('app-logo');
+                    img.src = ev.target.result;
+                    img.classList.remove('hidden');
+                    document.getElementById('placeholder-logo').classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
     </script>
 </body>
 </html>
