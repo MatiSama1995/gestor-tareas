@@ -42,10 +42,29 @@
             background-color: rgba(0, 174, 240, 0.15) !important;
             border: 2px solid var(--accent-blue) !important;
         }
-        /* Fix para responsividad en moviles pequeños */
+        .stat-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border-bottom: 4px solid transparent;
+        }
+        .stat-card.blue { border-bottom-color: var(--logicalis-blue); }
+        .stat-card.light-blue { border-bottom-color: var(--accent-blue); }
+        .stat-card.red { border-bottom-color: var(--corp-red); }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -9px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e2e8f0;
+        }
+
         @media (max-width: 640px) {
             .container { padding-left: 1rem; padding-right: 1rem; }
-            h1 { font-size: 1.25rem; }
         }
         .loading-overlay {
             position: fixed; inset: 0; background: white;
@@ -53,30 +72,30 @@
         }
     </style>
 </head>
-<body class="pb-10">
+<body class="pb-24">
 
     <div id="loading" class="loading-overlay">
         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-800"></div>
     </div>
 
-    <!-- Nav -->
+    <!-- Navegación Superior -->
     <nav class="bg-white shadow-sm sticky top-0 z-[100] px-4 py-3 flex justify-between items-center">
         <div class="flex items-center space-x-3">
             <div class="w-20 h-8 flex items-center justify-center bg-gray-50 border rounded text-[10px] font-bold text-gray-400 uppercase tracking-tighter overflow-hidden">
-                <img id="display-logo" class="hidden max-h-full" src="" alt="Logo">
                 <span id="logo-text">Logicalis</span>
             </div>
-            <div class="flex space-x-2 border-l pl-3">
-                <button onclick="showView('tasks')" class="text-xs font-bold text-blue-900 uppercase">Tareas</button>
-                <button onclick="showView('dashboard')" class="text-xs font-bold text-gray-400 uppercase">Stats</button>
+            <div class="flex space-x-2 border-l pl-3 overflow-x-auto">
+                <button onclick="showView('tasks')" class="nav-btn text-[10px] font-bold text-blue-900 uppercase whitespace-nowrap" data-view="tasks">Tareas</button>
+                <button onclick="showView('agenda')" class="nav-btn text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap" data-view="agenda">Agenda</button>
+                <button onclick="showView('dashboard')" class="nav-btn text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap" data-view="dashboard">Stats</button>
             </div>
         </div>
-        <button onclick="openTaskModal()" class="bg-[#004a99] text-white text-[11px] font-bold px-3 py-2 rounded-lg">+ Tarea</button>
+        <button onclick="openTaskModal()" class="bg-[#004a99] text-white text-[10px] font-bold px-3 py-2 rounded-lg shadow-lg active:scale-90 transition-transform">+ NUEVA</button>
     </nav>
 
     <main class="mt-4 container mx-auto">
         
-        <!-- Seleccion Area -->
+        <!-- Selección de Área -->
         <div id="area-selection" class="hidden px-4 py-10">
             <h2 class="text-center font-black text-gray-400 uppercase tracking-widest text-xs mb-8">Selecciona Workspace</h2>
             <div class="grid grid-cols-1 gap-4">
@@ -97,26 +116,23 @@
             </div>
         </div>
 
-        <!-- Vista Tareas -->
+        <!-- VISTA 1: TABLERO KANBAN -->
         <div id="tasks-view" class="hidden px-2">
             <div class="flex justify-between items-center mb-6 px-2">
-                <button onclick="backToAreas()" class="text-gray-400 flex items-center text-xs">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 19l-7-7 7-7"/></svg> ATRÁS
+                <button onclick="backToAreas()" class="text-gray-400 flex items-center text-[10px] font-bold">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 19l-7-7 7-7"/></svg> CAMBIAR ÁREA
                 </button>
                 <span id="current-area-tag" class="bg-blue-100 text-blue-800 text-[10px] font-black px-3 py-1 rounded-full uppercase">AREA</span>
             </div>
 
-            <!-- Tablero Kanban Adaptado -->
             <div class="space-y-8">
-                <!-- Columna: Pendiente -->
                 <div class="space-y-3">
                     <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 flex justify-between">
                         Pendientes <span id="count-todo" class="text-gray-300">0</span>
                     </h4>
-                    <div id="col-todo" data-status="todo" class="kanban-column bg-gray-200/50 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
+                    <div id="col-todo" data-status="todo" class="kanban-column bg-gray-200/40 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
                 </div>
 
-                <!-- Columna: En Proceso -->
                 <div class="space-y-3">
                     <h4 class="text-[10px] font-black text-blue-400 uppercase tracking-widest px-2 flex justify-between">
                         En Proceso <span id="count-doing" class="text-blue-200">0</span>
@@ -124,7 +140,6 @@
                     <div id="col-doing" data-status="doing" class="kanban-column bg-blue-50/50 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
                 </div>
 
-                <!-- Columna: Finalizado -->
                 <div class="space-y-3">
                     <h4 class="text-[10px] font-black text-green-500 uppercase tracking-widest px-2 flex justify-between">
                         Completado <span id="count-done" class="text-green-200">0</span>
@@ -134,15 +149,62 @@
             </div>
         </div>
 
-        <!-- Dashboard -->
-        <div id="dashboard-view" class="hidden px-4">
-            <h2 class="font-bold text-blue-900 mb-6 uppercase text-sm tracking-tighter">Estadísticas Globales</h2>
-            <div class="grid grid-cols-2 gap-4 mb-8">
-                <div class="bg-white p-4 rounded-xl shadow-sm"><p class="text-[9px] font-bold text-gray-400 uppercase">Total</p><h3 id="kpi-total" class="text-2xl font-black">0</h3></div>
-                <div class="bg-white p-4 rounded-xl shadow-sm"><p class="text-[9px] font-bold text-gray-400 uppercase">Completadas</p><h3 id="kpi-done" class="text-2xl font-black text-green-500">0</h3></div>
+        <!-- VISTA 2: AGENDA / ORDEN CRONOLÓGICO -->
+        <div id="agenda-view" class="hidden px-4">
+            <div class="mb-6">
+                <h1 class="text-blue-900 font-black text-xl uppercase tracking-tight">Próximos Vencimientos</h1>
+                <p class="text-[10px] text-gray-400 font-bold uppercase">Tareas pendientes ordenadas por fecha</p>
             </div>
-            <div class="bg-white p-4 rounded-xl shadow-sm mb-6 h-64">
-                <canvas id="barChart"></canvas>
+            
+            <div id="agenda-list" class="space-y-6 ml-4 border-l-2 border-gray-100 pl-6 relative">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </div>
+
+        <!-- VISTA 3: DASHBOARD -->
+        <div id="dashboard-view" class="hidden px-4 pb-20">
+            <h1 class="text-center text-blue-900 font-black text-xl mb-8 uppercase tracking-tight">Análisis de Desempeño</h1>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="stat-card">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Total</p>
+                    <h3 id="kpi-total" class="text-3xl font-black text-blue-900">0</h3>
+                </div>
+                <div class="stat-card light-blue">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Progreso</p>
+                    <h3 id="kpi-progress" class="text-3xl font-black text-gray-700">0%</h3>
+                </div>
+                <div class="stat-card red">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Vencidas</p>
+                    <h3 id="kpi-overdue" class="text-3xl font-black text-red-600">0</h3>
+                </div>
+                <div class="stat-card">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Distribución</p>
+                    <h3 id="kpi-ratio" class="text-xl font-black text-gray-700">0/0</h3>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-3xl shadow-sm">
+                    <h4 class="text-sm font-bold text-blue-900 mb-6 uppercase tracking-tighter">Carga de Trabajo por Fecha</h4>
+                    <div class="h-48">
+                        <canvas id="lineChart"></canvas>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm">
+                        <h4 class="text-sm font-bold text-blue-900 mb-6">Estados</h4>
+                        <div class="h-48">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm">
+                        <h4 class="text-sm font-bold text-blue-900 mb-6">Carga por Área</h4>
+                        <div class="h-48">
+                            <canvas id="donutChart"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -153,7 +215,6 @@
             <div class="p-6">
                 <h3 class="text-lg font-bold mb-4 text-blue-900">Nueva Tarea</h3>
                 <form id="task-form" onsubmit="saveTask(event)" class="space-y-4">
-                    <input type="hidden" id="edit-id">
                     <input type="text" id="task-title" placeholder="¿Qué hay que hacer?" required class="w-full bg-gray-100 p-3 rounded-xl outline-none text-sm">
                     <div class="grid grid-cols-2 gap-3">
                         <select id="task-area" class="bg-gray-100 p-3 rounded-xl text-sm outline-none">
@@ -200,25 +261,36 @@
             onSnapshot(collection(db, 'gestor_tareas'), (snapshot) => {
                 tasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 document.getElementById('loading').classList.add('hidden');
-                if (!currentArea && document.getElementById('dashboard-view').classList.contains('hidden')) {
+                if (!currentArea && document.getElementById('dashboard-view').classList.contains('hidden') && document.getElementById('agenda-view').classList.contains('hidden')) {
                     document.getElementById('area-selection').classList.remove('hidden');
                 }
                 renderTasks();
+                renderAgenda();
                 updateStats();
             });
         });
 
         // --- NAVIGATION ---
         window.showView = (v) => {
-            document.getElementById('area-selection').classList.add('hidden');
-            document.getElementById('tasks-view').classList.add('hidden');
-            document.getElementById('dashboard-view').classList.add('hidden');
+            const views = ['area-selection', 'tasks-view', 'agenda-view', 'dashboard-view'];
+            views.forEach(id => document.getElementById(id).classList.add('hidden'));
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-blue-900');
+                btn.classList.add('text-gray-400');
+                if(btn.dataset.view === v) {
+                    btn.classList.remove('text-gray-400');
+                    btn.classList.add('text-blue-900');
+                }
+            });
+
             if (v === 'tasks') {
                 if (!currentArea) document.getElementById('area-selection').classList.remove('hidden');
                 else document.getElementById('tasks-view').classList.remove('hidden');
-            } else if (v === 'dashboard') {
-                document.getElementById('dashboard-view').classList.remove('hidden');
-                initCharts();
+            } else {
+                document.getElementById(`${v}-view`).classList.remove('hidden');
+                if(v === 'dashboard') initCharts();
+                if(v === 'agenda') renderAgenda();
             }
         };
 
@@ -226,7 +298,6 @@
             currentArea = a;
             document.getElementById('current-area-tag').innerText = a;
             showView('tasks');
-            renderTasks();
         };
 
         window.backToAreas = () => {
@@ -234,40 +305,26 @@
             showView('tasks');
         };
 
-        // --- KANBAN MOBILE DRAG LOGIC (ROBUST) ---
+        // --- KANBAN DRAG LOGIC (MOBILE) ---
         let dragItem = null;
         let dragId = null;
-        let startX, startY;
 
         function setupDrag(element, id) {
-            // Mouse
-            element.ondragstart = (e) => e.dataTransfer.setData("taskId", id);
-
-            // Touch
             element.addEventListener('touchstart', (e) => {
                 if (e.target.closest('button')) return;
-                const touch = e.touches[0];
                 dragId = id;
                 dragItem = element;
-                startX = touch.clientX - element.offsetLeft;
-                startY = touch.clientY - element.offsetTop;
-                
-                // Feedback
-                if (navigator.vibrate) navigator.vibrate(10);
             }, { passive: true });
 
             element.addEventListener('touchmove', (e) => {
                 if (!dragItem) return;
-                e.preventDefault(); // Bloquear scroll durante drag
+                e.preventDefault();
                 const touch = e.touches[0];
-                
-                // Aplicar estilos de arrastre
                 dragItem.classList.add('dragging-active');
                 dragItem.style.width = (window.innerWidth - 40) + 'px';
                 dragItem.style.left = touch.clientX - (dragItem.offsetWidth / 2) + 'px';
                 dragItem.style.top = touch.clientY - (dragItem.offsetHeight / 2) + 'px';
 
-                // Check collision
                 const col = getColumnUnderPoint(touch.clientX, touch.clientY);
                 document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('column-highlight'));
                 if (col) col.classList.add('column-highlight');
@@ -277,23 +334,14 @@
                 if (!dragItem) return;
                 const touch = e.changedTouches[0];
                 const col = getColumnUnderPoint(touch.clientX, touch.clientY);
-                
                 document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('column-highlight'));
-                
                 if (col) {
-                    const newStatus = col.getAttribute('data-status');
-                    updateTaskStatus(dragId, newStatus);
+                    updateTaskStatus(dragId, col.getAttribute('data-status'));
                 }
-
                 dragItem.classList.remove('dragging-active');
-                dragItem.style.position = '';
-                dragItem.style.left = '';
-                dragItem.style.top = '';
-                dragItem.style.width = '';
-                dragItem = null;
-                dragId = null;
-                
-                renderTasks(); // Refresh para limpiar basura visual
+                dragItem.style.position = ''; dragItem.style.left = ''; dragItem.style.top = ''; dragItem.style.width = '';
+                dragItem = null; dragId = null;
+                renderTasks();
             });
         }
 
@@ -301,9 +349,7 @@
             const cols = document.querySelectorAll('.kanban-column');
             for (let col of cols) {
                 const rect = col.getBoundingClientRect();
-                if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-                    return col;
-                }
+                if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return col;
             }
             return null;
         }
@@ -312,15 +358,11 @@
             await updateDoc(doc(db, 'gestor_tareas', id), { status, updatedAt: serverTimestamp() });
         }
 
-        // --- RENDER ---
+        // --- RENDERERS ---
         function renderTasks() {
             const cols = { todo: 'col-todo', doing: 'col-doing', done: 'col-done' };
             const countLabels = { todo: 'count-todo', doing: 'count-doing', done: 'count-done' };
-            
-            Object.values(cols).forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.innerHTML = '';
-            });
+            Object.values(cols).forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
 
             const filtered = tasks.filter(t => t.area === currentArea);
             const stats = { todo: 0, doing: 0, done: 0 };
@@ -331,31 +373,124 @@
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
                         <h5 class="font-bold text-gray-800 text-sm leading-tight">${t.title}</h5>
-                        <button onclick="deleteTask('${t.id}')" class="text-gray-300 p-1">
-                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path></svg>
-                        </button>
+                        <button onclick="deleteTask('${t.id}')" class="text-gray-300 p-1"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path></svg></button>
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-1 mb-3 line-clamp-1">${t.desc || '...'}</p>
+                    <p class="text-[10px] text-gray-400 mt-1 mb-3 line-clamp-1">${t.desc || 'Sin detalles'}</p>
                     <div class="flex items-center text-[9px] font-black text-gray-400 uppercase tracking-tighter">
-                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        ${t.date}
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> ${t.date}
                     </div>
                 `;
                 setupDrag(card, t.id);
                 document.getElementById(cols[t.status]).appendChild(card);
                 stats[t.status]++;
             });
+            Object.keys(countLabels).forEach(k => { if(document.getElementById(countLabels[k])) document.getElementById(countLabels[k]).innerText = stats[k]; });
+        }
 
-            Object.keys(countLabels).forEach(k => {
-                const el = document.getElementById(countLabels[k]);
-                if (el) el.innerText = stats[k];
+        function renderAgenda() {
+            const container = document.getElementById('agenda-list');
+            if(!container) return;
+            container.innerHTML = '';
+
+            const today = new Date().toISOString().split('T')[0];
+            // Solo tareas no hechas (todo, doing) ordenadas por fecha
+            const pending = tasks
+                .filter(t => t.status !== 'done')
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            if(pending.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400 italic">No hay tareas pendientes en la agenda.</p>';
+                return;
+            }
+
+            pending.forEach(t => {
+                const isOverdue = t.date < today;
+                const isToday = t.date === today;
+                const colorClass = isOverdue ? 'text-red-500' : (isToday ? 'text-orange-500' : 'text-blue-900');
+                const badgeClass = isOverdue ? 'bg-red-100 text-red-600' : (isToday ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-600');
+
+                const item = document.createElement('div');
+                item.className = "relative mb-8 last:mb-0";
+                item.innerHTML = `
+                    <div class="absolute -left-[31px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white ${isOverdue ? 'bg-red-500' : 'bg-blue-500'}"></div>
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-[10px] font-black uppercase ${colorClass}">${t.date === today ? '¡HOY!' : t.date}</span>
+                        <span class="text-[9px] font-black px-2 py-0.5 rounded ${badgeClass}">${t.area}</span>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 ${isOverdue ? 'border-red-500' : 'border-blue-500'}">
+                        <h4 class="font-bold text-sm text-gray-800">${t.title}</h4>
+                        <p class="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-tight">${t.status === 'todo' ? 'PENDIENTE' : 'EN CURSO'}</p>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // --- DASHBOARD LOGIC ---
+        function updateStats() {
+            if (tasks.length === 0) return;
+            const total = tasks.length;
+            const done = tasks.filter(t => t.status === 'done').length;
+            const overdue = tasks.filter(t => t.status !== 'done' && t.date < new Date().toISOString().split('T')[0]).length;
+            
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-progress').innerText = `${Math.round((done / total) * 100)}%`;
+            document.getElementById('kpi-overdue').innerText = overdue;
+            document.getElementById('kpi-ratio').innerText = `${tasks.filter(t => t.area === 'CCTN').length}/${tasks.filter(t => t.area === 'Alianzas').length}`;
+        }
+
+        let barChart, donutChart, lineChart;
+        function initCharts() {
+            const barCtx = document.getElementById('barChart');
+            const donutCtx = document.getElementById('donutChart');
+            const lineCtx = document.getElementById('lineChart');
+
+            if(barChart) barChart.destroy();
+            if(donutChart) donutChart.destroy();
+            if(lineChart) lineChart.destroy();
+
+            // 1. Estados
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Pend', 'Proc', 'OK'],
+                    datasets: [{ data: [tasks.filter(t => t.status === 'todo').length, tasks.filter(t => t.status === 'doing').length, tasks.filter(t => t.status === 'done').length], backgroundColor: ['#58595b', '#00aef0', '#10b981'], borderRadius: 5 }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            // 2. Dona Áreas
+            donutChart = new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Alianzas', 'CCTN'],
+                    datasets: [{ data: [tasks.filter(t => t.area === 'Alianzas').length, tasks.filter(t => t.area === 'CCTN').length], backgroundColor: ['#004a99', '#e41613'], borderWidth: 0 }]
+                },
+                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { font: { size: 9 } } } } }
+            });
+
+            // 3. Linea de Tiempo (Carga por fecha)
+            const dateGroups = {};
+            tasks.filter(t => t.status !== 'done').forEach(t => { dateGroups[t.date] = (dateGroups[t.date] || 0) + 1; });
+            const sortedDates = Object.keys(dateGroups).sort();
+
+            lineChart = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: sortedDates.map(d => d.split('-').slice(1).join('/')),
+                    datasets: [{ label: 'Tareas', data: sortedDates.map(d => dateGroups[d]), borderColor: '#004a99', backgroundColor: 'rgba(0, 74, 153, 0.1)', fill: true, tension: 0.4, pointRadius: 4 }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } }
+                }
             });
         }
 
         // --- CRUD ---
         window.openTaskModal = () => document.getElementById('task-modal').classList.remove('hidden');
         window.closeTaskModal = () => document.getElementById('task-modal').classList.add('hidden');
-
         window.saveTask = async (e) => {
             e.preventDefault();
             const id = Date.now().toString();
@@ -364,55 +499,13 @@
                 area: document.getElementById('task-area').value,
                 desc: document.getElementById('task-desc').value,
                 date: document.getElementById('task-date').value,
-                status: 'todo',
-                updatedAt: serverTimestamp()
+                status: 'todo', updatedAt: serverTimestamp()
             };
             closeTaskModal();
             await setDoc(doc(db, 'gestor_tareas', id), data);
             document.getElementById('task-form').reset();
         };
-
-        window.deleteTask = async (id) => {
-            if(confirm('¿Eliminar?')) await deleteDoc(doc(db, 'gestor_tareas', id));
-        };
-
-        // --- DASHBOARD ---
-        function updateStats() {
-            document.getElementById('kpi-total').innerText = tasks.length;
-            document.getElementById('kpi-done').innerText = tasks.filter(t => t.status === 'done').length;
-        }
-
-        let chart;
-        function initCharts() {
-            const ctx = document.getElementById('barChart');
-            if(chart) chart.destroy();
-            chart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Pend', 'Proc', 'OK'],
-                    datasets: [{
-                        label: 'Tareas',
-                        data: ['todo', 'doing', 'done'].map(s => tasks.filter(t => t.status === s).length),
-                        backgroundColor: ['#94a3b8', '#00aef0', '#10b981'],
-                        borderRadius: 6
-                    }]
-                },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-        }
-
-        // Drag handlers for desktop
-        window.addEventListener('dragover', e => e.preventDefault());
-        window.addEventListener('drop', async e => {
-            e.preventDefault();
-            const id = e.dataTransfer.getData("taskId");
-            const col = e.target.closest('.kanban-column');
-            if (id && col) {
-                const status = col.getAttribute('data-status');
-                await updateTaskStatus(id, status);
-            }
-        });
-
+        window.deleteTask = async (id) => { if(confirm('¿Eliminar tarea?')) await deleteDoc(doc(db, 'gestor_tareas', id)); };
     </script>
 </body>
 </html>
