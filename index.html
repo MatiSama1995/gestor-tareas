@@ -78,7 +78,6 @@
         </div>
         
         <div class="flex items-center space-x-3">
-            <!-- Indicador de Nube (Reemplaza a Importar/Exportar) -->
             <div class="flex items-center text-xs font-bold text-green-600 bg-green-50 px-3 py-2 rounded-lg border border-green-100 mr-2">
                 <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
                 NUBE ACTIVA
@@ -137,7 +136,7 @@
                         <h3 class="font-bold text-sm uppercase tracking-widest text-gray-500">Por Hacer</h3>
                         <span id="count-todo" class="bg-gray-200 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
                     </div>
-                    <div id="col-todo" ondrop="drop(event, 'todo')" ondragover="allowDrop(event)" class="kanban-column bg-gray-200/30 rounded-2xl p-4 space-y-4 border-2 border-dashed border-gray-300/50"></div>
+                    <div id="col-todo" ondrop="window.drop(event, 'todo')" ondragover="window.allowDrop(event)" class="kanban-column bg-gray-200/30 rounded-2xl p-4 space-y-4 border-2 border-dashed border-gray-300/50"></div>
                 </div>
 
                 <div class="flex flex-col">
@@ -145,7 +144,7 @@
                         <h3 class="font-bold text-sm uppercase tracking-widest text-accent">Haciendo</h3>
                         <span id="count-doing" class="bg-blue-100 text-accent px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
                     </div>
-                    <div id="col-doing" ondrop="drop(event, 'doing')" ondragover="allowDrop(event)" class="kanban-column bg-blue-50/50 rounded-2xl p-4 space-y-4 border-2 border-dashed border-blue-200/50"></div>
+                    <div id="col-doing" ondrop="window.drop(event, 'doing')" ondragover="window.allowDrop(event)" class="kanban-column bg-blue-50/50 rounded-2xl p-4 space-y-4 border-2 border-dashed border-blue-200/50"></div>
                 </div>
 
                 <div class="flex flex-col">
@@ -153,7 +152,7 @@
                         <h3 class="font-bold text-sm uppercase tracking-widest text-green-600">Hecho</h3>
                         <span id="count-done" class="bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full text-xs font-bold">0</span>
                     </div>
-                    <div id="col-done" ondrop="drop(event, 'done')" ondragover="allowDrop(event)" class="kanban-column bg-green-50/50 rounded-2xl p-4 space-y-4 border-2 border-dashed border-green-200/50"></div>
+                    <div id="col-done" ondrop="window.drop(event, 'done')" ondragover="window.allowDrop(event)" class="kanban-column bg-green-50/50 rounded-2xl p-4 space-y-4 border-2 border-dashed border-green-200/50"></div>
                 </div>
             </div>
         </div>
@@ -204,7 +203,7 @@
                 </button>
             </div>
             <div class="p-8">
-                <form id="task-form" onsubmit="handleTaskSubmit(event)" class="space-y-5">
+                <form id="task-form" onsubmit="window.handleTaskSubmit(event)" class="space-y-5">
                     <input type="hidden" id="edit-id">
                     <div>
                         <label class="block text-xs font-black text-gray-400 uppercase mb-2">Título del requerimiento</label>
@@ -236,13 +235,12 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (Configuración real del usuario) -->
+    <!-- Firebase Implementation -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // CONFIGURACIÓN DE FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyBHV61Lh6QefR1AgHMwte6051Xaydij3Iw",
             authDomain: "gestor-de-tareas-249cd.firebaseapp.com",
@@ -260,50 +258,38 @@
         let currentArea = null;
         let barChart = null;
         let pieChart = null;
+        const LOGO_KEY = 'coasin_logo_v2';
 
-        const LOGO_KEY = 'coasin_logo_v2'; // Mantenemos el logo en localStorage por eficiencia
-
-        // --- Inicialización y Escucha de Firebase ---
+        // --- Firebase Listeners ---
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                try {
-                    await signInAnonymously(auth);
-                } catch (e) {
-                    console.error("Error Auth:", e);
-                }
+                await signInAnonymously(auth);
             } else {
-                // Escuchar tareas en tiempo real
+                // Escucha activa de tareas (Sincronización en tiempo real)
                 onSnapshot(collection(db, 'gestor_tareas'), (snapshot) => {
                     tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
-                    // Ocultar pantalla de carga
                     document.getElementById('loading').classList.add('hidden');
-                    if (!currentArea && document.getElementById('dashboard-view').classList.contains('hidden')) {
+                    
+                    // Si no hay área seleccionada y estamos en vista de tareas, mostrar selección
+                    const isDashboardHidden = document.getElementById('dashboard-view').classList.contains('hidden');
+                    if (!currentArea && isDashboardHidden) {
                         document.getElementById('area-selection').classList.remove('hidden');
                     }
                     
+                    // Actualizar UI según vista actual
                     if (currentArea) window.renderTasks();
-                    if (!document.getElementById('dashboard-view').classList.contains('hidden')) {
+                    if (!isDashboardHidden) {
                         window.updateKPIs();
                         window.initCharts();
                     }
+                }, (error) => {
+                    console.error("Error en Snapshot:", error);
                 });
             }
         });
 
-        // Cargar logo al inicio
-        window.onload = () => {
-            const savedLogo = localStorage.getItem(LOGO_KEY);
-            if (savedLogo) {
-                const logoImg = document.getElementById('app-logo');
-                const placeholder = document.getElementById('placeholder-logo');
-                logoImg.src = savedLogo;
-                logoImg.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-            }
-        };
-
-        // --- Lógica de Vistas (Expuesta a Window por usar type="module") ---
+        // --- Global Functions ---
         window.showView = function(viewId) {
             document.getElementById('area-selection').classList.add('hidden');
             document.getElementById('tasks-view').classList.add('hidden');
@@ -338,7 +324,6 @@
             window.showView('tasks');
         };
 
-        // --- Gestión de Tareas ---
         window.openTaskModal = function() {
             document.getElementById('task-modal').classList.remove('hidden');
             document.getElementById('task-modal').classList.add('flex');
@@ -354,27 +339,27 @@
 
         window.handleTaskSubmit = async function(e) {
             e.preventDefault();
-            const id = document.getElementById('edit-id').value || Date.now().toString();
-            const isEditing = !!document.getElementById('edit-id').value;
+            const editId = document.getElementById('edit-id').value;
+            const id = editId || Date.now().toString();
             
-            const data = {
+            const taskData = {
                 title: document.getElementById('task-title').value,
                 area: document.getElementById('task-area').value,
                 desc: document.getElementById('task-desc').value,
-                date: document.getElementById('task-date').value
+                date: document.getElementById('task-date').value,
             };
-            
-            if(!isEditing) data.status = 'todo'; // Solo setear 'todo' si es nueva
 
-            // 1. Cerramos el modal inmediatamente para evitar clics múltiples
+            // Si es nueva, estado inicial 'todo'
+            if (!editId) taskData.status = 'todo';
+
+            // Cerramos modal inmediatamente (Mejora UX)
             window.closeTaskModal();
 
-            // 2. Guardamos en la base de datos en segundo plano
             try {
-                await setDoc(doc(db, 'gestor_tareas', id), data, { merge: true });
+                await setDoc(doc(db, 'gestor_tareas', id), taskData, { merge: true });
             } catch (err) {
-                console.error("Error al guardar:", err);
-                alert("Hubo un problema de conexión al guardar la tarea.");
+                console.error("Error guardando:", err);
+                alert("Error al sincronizar con la nube.");
             }
         };
 
@@ -391,14 +376,15 @@
                 const card = document.createElement('div');
                 card.className = `task-card bg-white p-5 rounded-2xl shadow-sm border border-gray-100 ${isOverdue ? 'border-l-4 border-l-[#e41613]' : ''}`;
                 card.draggable = true;
+                card.id = `card-${t.id}`;
                 card.ondragstart = (e) => window.drag(e, t.id);
                 
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-3">
                         <h4 class="font-bold text-gray-800 leading-snug">${t.title}</h4>
                         <div class="flex space-x-1">
-                            <button onclick="editTask('${t.id}')" class="text-gray-300 hover:text-accent p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
-                            <button onclick="deleteTask('${t.id}')" class="text-gray-300 hover:text-red-500 p-1"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path></svg></button>
+                            <button onclick="window.editTask('${t.id}')" class="text-gray-300 hover:text-accent p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                            <button onclick="window.deleteTask('${t.id}')" class="text-gray-300 hover:text-red-500 p-1"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path></svg></button>
                         </div>
                     </div>
                     <p class="text-xs text-gray-400 mb-4 line-clamp-2">${t.desc || '...'}</p>
@@ -410,8 +396,11 @@
                         <span class="px-2 py-0.5 bg-gray-100 rounded text-gray-500">${t.area}</span>
                     </div>
                 `;
-                document.getElementById(cols[t.status]).appendChild(card);
-                stats[t.status]++;
+                const column = document.getElementById(cols[t.status]);
+                if (column) {
+                    column.appendChild(card);
+                    stats[t.status]++;
+                }
             });
 
             Object.keys(counts).forEach(k => document.getElementById(counts[k]).innerText = stats[k]);
@@ -437,15 +426,20 @@
         // --- Drag & Drop ---
         window.allowDrop = function(ev) { ev.preventDefault(); };
         window.drag = function(ev, id) { ev.dataTransfer.setData("text", id); };
-        window.drop = async function(ev, status) {
+        window.drop = async function(ev, newStatus) {
             ev.preventDefault();
             const id = ev.dataTransfer.getData("text");
-            if (id) {
-                await setDoc(doc(db, 'gestor_tareas', id), { status }, { merge: true });
+            if (!id) return;
+
+            try {
+                // Actualizar solo el estado en Firebase
+                await updateDoc(doc(db, 'gestor_tareas', id), { status: newStatus });
+            } catch (err) {
+                console.error("Error al mover tarea:", err);
             }
         };
 
-        // --- Dashboard & Charts ---
+        // --- Dashboard KPIs ---
         window.updateKPIs = function() {
             const total = tasks.length;
             const done = tasks.filter(t => t.status === 'done').length;
@@ -462,7 +456,7 @@
         window.initCharts = function() {
             const statusData = ['todo', 'doing', 'done'].map(s => tasks.filter(t => t.status === s).length);
             const areaData = ['Alianzas', 'CCTN'].map(a => tasks.filter(t => t.area === a).length);
-            const areaTotal = areaData.reduce((a,b)=>a+b, 0);
+            const areaTotal = areaData.reduce((a,b)=>a+b, 0) || 1;
 
             if (barChart) barChart.destroy();
             const ctxBar = document.getElementById('barChart');
@@ -517,7 +511,15 @@
             }
         };
 
-        // --- Persistencia de Logo en Local ---
+        // --- Logo Handling ---
+        const savedLogo = localStorage.getItem(LOGO_KEY);
+        if (savedLogo) {
+            const logoImg = document.getElementById('app-logo');
+            logoImg.src = savedLogo;
+            logoImg.classList.remove('hidden');
+            document.getElementById('placeholder-logo').classList.add('hidden');
+        }
+
         document.getElementById('logo-input').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
