@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager - CoasinLogicalis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Task Manager Mobile - CoasinLogicalis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -12,256 +12,170 @@
             --accent-blue: #00aef0;
             --corp-gray: #58595b;
             --corp-red: #e41613;
-            --refined-bg: #f8fafc;
         }
         body {
-            background-color: var(--refined-bg);
+            background-color: #f1f5f9;
             color: var(--corp-gray);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
-            touch-action: pan-y; /* Permite scroll vertical normal */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: manipulation;
         }
-        .bg-logicalis { background-color: var(--logicalis-blue); }
-        .text-logicalis { color: var(--logicalis-blue); }
-        .bg-accent { background-color: var(--accent-blue); }
-        .border-accent { border-color: var(--accent-blue); }
-        .text-red-corp { color: var(--corp-red); }
-        .bg-red-corp { background-color: var(--corp-red); }
-        
         .kanban-column {
-            min-height: 150px;
-            transition: background-color 0.2s, border-color 0.2s;
-        }
-        @media (min-width: 768px) {
-            .kanban-column {
-                min-height: 70vh;
-            }
+            min-height: 200px;
+            transition: all 0.3s ease;
         }
         .task-card {
-            cursor: grab;
-            transition: transform 0.1s, box-shadow 0.2s;
-            touch-action: none; /* Crucial para manejar el drag táctil manualmente */
+            touch-action: none;
             user-select: none;
+            -webkit-user-select: none;
+            position: relative;
+            z-index: 10;
         }
-        .task-card:active { cursor: grabbing; }
-        .task-card.dragging {
-            opacity: 0.5;
-            transform: scale(1.02);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            z-index: 100;
+        .dragging-active {
+            position: fixed !important;
+            pointer-events: none;
+            z-index: 9999 !important;
+            transform: scale(1.05) rotate(3deg);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            opacity: 0.9;
         }
-        
-        .nav-link.active {
-            border-bottom: 3px solid var(--accent-blue);
-            color: var(--logicalis-blue);
-            font-weight: bold;
+        .column-highlight {
+            background-color: rgba(0, 174, 240, 0.15) !important;
+            border: 2px solid var(--accent-blue) !important;
         }
-
+        /* Fix para responsividad en moviles pequeños */
+        @media (max-width: 640px) {
+            .container { padding-left: 1rem; padding-right: 1rem; }
+            h1 { font-size: 1.25rem; }
+        }
         .loading-overlay {
-            position: fixed; inset: 0; background: rgba(255,255,255,0.9);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;
+            position: fixed; inset: 0; background: white;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
         }
-
-        @keyframes pulse-soft {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-        .animate-pulse-soft { animation: pulse-soft 2s infinite; }
     </style>
 </head>
-<body>
+<body class="pb-10">
 
-    <!-- Pantalla de carga -->
     <div id="loading" class="loading-overlay">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-logicalis mb-4"></div>
-        <p class="text-sm font-bold text-logicalis uppercase tracking-widest">Iniciando sistemas...</p>
+        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-800"></div>
     </div>
 
-    <!-- Top Navigation Bar -->
-    <nav class="bg-white shadow-md px-4 md:px-6 py-3 flex flex-wrap justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center space-x-2 md:space-x-4">
-            <div id="logo-container" class="h-8 md:h-10 w-24 md:w-40 flex items-center justify-center border-r pr-2 md:pr-4 border-gray-200">
-                <span id="placeholder-logo" class="text-[8px] md:text-xs font-bold text-gray-400">LOGO</span>
-                <img id="app-logo" class="hidden h-full object-contain" src="" alt="Logo">
+    <!-- Nav -->
+    <nav class="bg-white shadow-sm sticky top-0 z-[100] px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <div class="w-20 h-8 flex items-center justify-center bg-gray-50 border rounded text-[10px] font-bold text-gray-400 uppercase tracking-tighter overflow-hidden">
+                <img id="display-logo" class="hidden max-h-full" src="" alt="Logo">
+                <span id="logo-text">Logicalis</span>
             </div>
-            <div class="flex space-x-3 md:space-x-6">
-                <button onclick="showView('tasks')" id="nav-tasks" class="nav-link active py-2 text-[10px] md:text-sm uppercase tracking-wider">Tareas</button>
-                <button onclick="showView('dashboard')" id="nav-dashboard" class="nav-link py-2 text-[10px] md:text-sm uppercase tracking-wider">Dashboard</button>
-            </div>
-        </div>
-        
-        <div class="flex items-center space-x-2 md:space-x-4 mt-2 md:mt-0 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-2 md:pt-0">
-            <div id="connection-panel" class="flex flex-col items-start md:items-end md:border-l md:pl-4 border-gray-100">
-                <div class="flex items-center space-x-2">
-                    <span id="conn-text" class="text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Verificando...</span>
-                    <div id="conn-dot" class="w-2 h-2 md:w-2.5 md:h-2.5 bg-gray-300 rounded-full"></div>
-                </div>
-                <div class="flex space-x-1 md:space-x-2 mt-0.5">
-                    <span id="ping-tag" class="text-[7px] md:text-[9px] px-1 md:px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded font-mono">0ms</span>
-                    <span id="db-tag" class="text-[7px] md:text-[9px] px-1 md:px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded uppercase font-bold">DB: Offline</span>
-                </div>
-            </div>
-
-            <div class="flex items-center space-x-2">
-                <label class="cursor-pointer bg-gray-50 hover:bg-gray-100 px-2 py-1.5 md:px-3 md:py-2 rounded-lg text-[10px] md:text-xs flex items-center transition border border-gray-200">
-                    <input type="file" id="logo-input" class="hidden" accept="image/*">
-                    <span class="font-bold text-gray-600 uppercase">Logo</span>
-                </label>
-                <button onclick="openTaskModal()" class="bg-logicalis text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-bold hover:opacity-90 transition shadow-sm">
-                    + Nueva
-                </button>
+            <div class="flex space-x-2 border-l pl-3">
+                <button onclick="showView('tasks')" class="text-xs font-bold text-blue-900 uppercase">Tareas</button>
+                <button onclick="showView('dashboard')" class="text-xs font-bold text-gray-400 uppercase">Stats</button>
             </div>
         </div>
+        <button onclick="openTaskModal()" class="bg-[#004a99] text-white text-[11px] font-bold px-3 py-2 rounded-lg">+ Tarea</button>
     </nav>
 
-    <!-- Main Content Area -->
-    <main class="container mx-auto p-4 md:p-6">
+    <main class="mt-4 container mx-auto">
         
-        <!-- Area Selection Screen -->
-        <div id="area-selection" class="flex flex-col items-center justify-center min-h-[60vh] hidden">
-            <h1 class="text-xl md:text-3xl font-bold mb-8 md:mb-12 text-logicalis text-center">Selecciona tu área de trabajo</h1>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 w-full max-w-4xl px-4">
-                <button onclick="selectArea('Alianzas')" class="bg-white p-8 md:p-12 rounded-2xl shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-accent transition group text-center">
-                    <div class="text-5xl md:text-6xl mb-4 group-hover:scale-110 transition">🤝</div>
-                    <h2 class="text-2xl md:text-4xl font-bold text-logicalis">Alianzas</h2>
-                    <p class="text-gray-500 mt-2 text-sm md:text-lg font-medium">Relaciones estratégicas</p>
+        <!-- Seleccion Area -->
+        <div id="area-selection" class="hidden px-4 py-10">
+            <h2 class="text-center font-black text-gray-400 uppercase tracking-widest text-xs mb-8">Selecciona Workspace</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <button onclick="selectArea('Alianzas')" class="bg-white p-6 rounded-2xl shadow-sm border-2 border-transparent active:border-blue-500 flex items-center space-x-4">
+                    <span class="text-3xl">🤝</span>
+                    <div class="text-left">
+                        <h3 class="font-bold text-lg text-blue-900">Alianzas</h3>
+                        <p class="text-xs text-gray-400">Gestión estratégica</p>
+                    </div>
                 </button>
-                <button onclick="selectArea('CCTN')" class="bg-white p-8 md:p-12 rounded-2xl shadow-xl hover:shadow-2xl border-2 border-transparent hover:border-accent transition group text-center">
-                    <div class="text-5xl md:text-6xl mb-4 group-hover:scale-110 transition">⚙️</div>
-                    <h2 class="text-2xl md:text-4xl font-bold text-logicalis">CCTN</h2>
-                    <p class="text-gray-500 mt-2 text-sm md:text-lg font-medium">Centro de Competencias</p>
+                <button onclick="selectArea('CCTN')" class="bg-white p-6 rounded-2xl shadow-sm border-2 border-transparent active:border-blue-500 flex items-center space-x-4">
+                    <span class="text-3xl">⚙️</span>
+                    <div class="text-left">
+                        <h3 class="font-bold text-lg text-blue-900">CCTN</h3>
+                        <p class="text-xs text-gray-400">Centro de Competencias</p>
+                    </div>
                 </button>
             </div>
         </div>
 
-        <!-- Tasks View -->
-        <div id="tasks-view" class="hidden">
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100 gap-4">
-                <div class="flex items-center">
-                    <button onclick="backToAreas()" class="mr-3 md:mr-4 p-2 hover:bg-gray-100 rounded-full transition">
-                        <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                    </button>
-                    <div>
-                        <h1 id="current-area-title" class="text-lg md:text-2xl font-bold text-logicalis leading-none uppercase tracking-tighter">Area</h1>
-                        <p class="text-[8px] md:text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-black">Workspace de Trabajo</p>
-                    </div>
-                </div>
-                <div id="area-badge" class="self-start md:self-center px-4 py-1.5 md:px-6 md:py-2 rounded-full bg-logicalis text-white text-[8px] md:text-[10px] font-black tracking-widest uppercase">AREA</div>
+        <!-- Vista Tareas -->
+        <div id="tasks-view" class="hidden px-2">
+            <div class="flex justify-between items-center mb-6 px-2">
+                <button onclick="backToAreas()" class="text-gray-400 flex items-center text-xs">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 19l-7-7 7-7"/></svg> ATRÁS
+                </button>
+                <span id="current-area-tag" class="bg-blue-100 text-blue-800 text-[10px] font-black px-3 py-1 rounded-full uppercase">AREA</span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pb-20">
-                <!-- Por Hacer -->
-                <div class="flex flex-col">
-                    <div class="flex items-center justify-between mb-3 px-2">
-                        <h3 class="font-black text-[10px] md:text-[11px] uppercase tracking-widest text-gray-500">Pendientes</h3>
-                        <span id="count-todo" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
-                    </div>
-                    <div id="col-todo" data-status="todo" ondrop="window.handleDrop(event, 'todo')" ondragover="window.allowDrop(event)" class="kanban-column bg-gray-100/50 rounded-2xl p-3 md:p-4 space-y-4 border-2 border-dashed border-gray-200"></div>
+            <!-- Tablero Kanban Adaptado -->
+            <div class="space-y-8">
+                <!-- Columna: Pendiente -->
+                <div class="space-y-3">
+                    <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 flex justify-between">
+                        Pendientes <span id="count-todo" class="text-gray-300">0</span>
+                    </h4>
+                    <div id="col-todo" data-status="todo" class="kanban-column bg-gray-200/50 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
                 </div>
 
-                <!-- Haciendo -->
-                <div class="flex flex-col">
-                    <div class="flex items-center justify-between mb-3 px-2">
-                        <h3 class="font-black text-[10px] md:text-[11px] uppercase tracking-widest text-accent-blue">En Ejecución</h3>
-                        <span id="count-doing" class="bg-blue-100 text-accent-blue px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
-                    </div>
-                    <div id="col-doing" data-status="doing" ondrop="window.handleDrop(event, 'doing')" ondragover="window.allowDrop(event)" class="kanban-column bg-blue-50/30 rounded-2xl p-3 md:p-4 space-y-4 border-2 border-dashed border-blue-100"></div>
+                <!-- Columna: En Proceso -->
+                <div class="space-y-3">
+                    <h4 class="text-[10px] font-black text-blue-400 uppercase tracking-widest px-2 flex justify-between">
+                        En Proceso <span id="count-doing" class="text-blue-200">0</span>
+                    </h4>
+                    <div id="col-doing" data-status="doing" class="kanban-column bg-blue-50/50 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
                 </div>
 
-                <!-- Hecho -->
-                <div class="flex flex-col">
-                    <div class="flex items-center justify-between mb-3 px-2">
-                        <h3 class="font-black text-[10px] md:text-[11px] uppercase tracking-widest text-green-600">Finalizadas</h3>
-                        <span id="count-done" class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
-                    </div>
-                    <div id="col-done" data-status="done" ondrop="window.handleDrop(event, 'done')" ondragover="window.allowDrop(event)" class="kanban-column bg-green-50/30 rounded-2xl p-3 md:p-4 space-y-4 border-2 border-dashed border-green-200"></div>
+                <!-- Columna: Finalizado -->
+                <div class="space-y-3">
+                    <h4 class="text-[10px] font-black text-green-500 uppercase tracking-widest px-2 flex justify-between">
+                        Completado <span id="count-done" class="text-green-200">0</span>
+                    </h4>
+                    <div id="col-done" data-status="done" class="kanban-column bg-green-50/50 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Dashboard View -->
-        <div id="dashboard-view" class="hidden">
-            <h1 class="text-xl md:text-3xl font-bold text-logicalis mb-6 md:mb-8 text-center uppercase tracking-tighter">Métricas de Operación</h1>
-            
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8">
-                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-b-4 border-logicalis">
-                    <p class="text-[8px] md:text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Total</p>
-                    <h2 id="kpi-total" class="text-2xl md:text-4xl font-bold text-logicalis">0</h2>
-                </div>
-                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-b-4 border-accent">
-                    <p class="text-[8px] md:text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Eficacia</p>
-                    <h2 id="kpi-progress" class="text-2xl md:text-4xl font-bold text-accent">0%</h2>
-                </div>
-                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-b-4 border-red-corp">
-                    <p class="text-[8px] md:text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Críticas</p>
-                    <h2 id="kpi-overdue" class="text-2xl md:text-4xl font-bold text-red-corp">0</h2>
-                </div>
-                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-b-4 border-gray-400">
-                    <p class="text-[8px] md:text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">Áreas</p>
-                    <h2 id="kpi-ratio" class="text-lg md:text-2xl font-bold text-gray-700">0/0</h2>
-                </div>
+        <!-- Dashboard -->
+        <div id="dashboard-view" class="hidden px-4">
+            <h2 class="font-bold text-blue-900 mb-6 uppercase text-sm tracking-tighter">Estadísticas Globales</h2>
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="bg-white p-4 rounded-xl shadow-sm"><p class="text-[9px] font-bold text-gray-400 uppercase">Total</p><h3 id="kpi-total" class="text-2xl font-black">0</h3></div>
+                <div class="bg-white p-4 rounded-xl shadow-sm"><p class="text-[9px] font-bold text-gray-400 uppercase">Completadas</p><h3 id="kpi-done" class="text-2xl font-black text-green-500">0</h3></div>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
-                <div class="bg-white p-4 md:p-8 rounded-3xl shadow-md min-h-[350px]">
-                    <h3 class="font-bold text-sm md:text-lg mb-4 text-gray-800">Carga por Estado</h3>
-                    <div class="h-64 md:h-80"><canvas id="barChart"></canvas></div>
-                </div>
-                <div class="bg-white p-4 md:p-8 rounded-3xl shadow-md min-h-[350px]">
-                    <h3 class="font-bold text-sm md:text-lg mb-4 text-gray-800">Participación de Áreas</h3>
-                    <div class="h-64 md:h-80"><canvas id="pieChart"></canvas></div>
-                </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm mb-6 h-64">
+                <canvas id="barChart"></canvas>
             </div>
         </div>
     </main>
 
-    <!-- Task Modal -->
-    <div id="task-modal" class="fixed inset-0 bg-logicalis/40 backdrop-blur-sm hidden items-center justify-center z-[100] p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
-            <div class="bg-logicalis p-5 flex justify-between items-center text-white">
-                <h3 class="text-lg md:text-xl font-bold">Registro de Actividad</h3>
-                <button onclick="closeTaskModal()" class="hover:bg-white/20 p-2 rounded-full transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-            <div class="p-6 md:p-8">
-                <form id="task-form" onsubmit="window.handleTaskSubmit(event)" class="space-y-4">
+    <!-- Modal Tarea -->
+    <div id="task-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[1000] p-4 flex items-center justify-center">
+        <div class="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl">
+            <div class="p-6">
+                <h3 class="text-lg font-bold mb-4 text-blue-900">Nueva Tarea</h3>
+                <form id="task-form" onsubmit="saveTask(event)" class="space-y-4">
                     <input type="hidden" id="edit-id">
-                    <div>
-                        <label class="block text-[8px] md:text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Título de la Tarea</label>
-                        <input type="text" id="task-title" placeholder="Ej: Reporte de Alianzas Q3" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent transition font-medium text-sm">
+                    <input type="text" id="task-title" placeholder="¿Qué hay que hacer?" required class="w-full bg-gray-100 p-3 rounded-xl outline-none text-sm">
+                    <div class="grid grid-cols-2 gap-3">
+                        <select id="task-area" class="bg-gray-100 p-3 rounded-xl text-sm outline-none">
+                            <option value="Alianzas">Alianzas</option>
+                            <option value="CCTN">CCTN</option>
+                        </select>
+                        <input type="date" id="task-date" required class="bg-gray-100 p-3 rounded-xl text-sm outline-none">
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[8px] md:text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Área</label>
-                            <select id="task-area" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent transition font-bold text-sm">
-                                <option value="Alianzas">Alianzas</option>
-                                <option value="CCTN">CCTN</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[8px] md:text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Vencimiento</label>
-                            <input type="date" id="task-date" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent transition text-sm">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-[8px] md:text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Descripción</label>
-                        <textarea id="task-desc" rows="3" placeholder="Detalles importantes..." class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent transition text-sm"></textarea>
-                    </div>
-                    <div class="pt-4 flex space-x-3">
-                        <button type="button" onclick="closeTaskModal()" class="flex-1 bg-gray-100 text-gray-500 py-4 rounded-2xl font-bold hover:bg-gray-200 transition text-sm">Cerrar</button>
-                        <button type="submit" class="flex-1 bg-logicalis text-white py-4 rounded-2xl font-bold hover:shadow-lg transition text-sm">Guardar</button>
+                    <textarea id="task-desc" placeholder="Detalles (opcional)" class="w-full bg-gray-100 p-3 rounded-xl text-sm outline-none h-20"></textarea>
+                    <div class="flex space-x-2">
+                        <button type="button" onclick="closeTaskModal()" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-xs">Cancelar</button>
+                        <button type="submit" class="flex-1 bg-[#004a99] text-white py-3 rounded-xl font-bold text-xs">Guardar</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, updateDoc, serverTimestamp, getDocs, limit, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBHV61Lh6QefR1AgHMwte6051Xaydij3Iw",
@@ -278,331 +192,227 @@
 
         let tasks = [];
         let currentArea = null;
-        let barChart = null;
-        let pieChart = null;
-        const LOGO_KEY = 'coasin_logo_v2';
 
-        // --- Monitor de Conexión ---
-        function updateConnectionStatus(status, ping = null) {
-            const dot = document.getElementById('conn-dot');
-            const text = document.getElementById('conn-text');
-            const pingTag = document.getElementById('ping-tag');
-            const dbTag = document.getElementById('db-tag');
-
-            if (status === 'online') {
-                dot.className = 'w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse';
-                text.innerText = 'NUBE CONECTADA';
-                text.className = 'text-[8px] md:text-[10px] font-bold text-green-600 uppercase tracking-tighter';
-                dbTag.className = 'text-[7px] md:text-[9px] px-1.5 py-0.5 bg-green-50 text-green-600 rounded uppercase font-bold border border-green-100';
-                dbTag.innerText = 'DB: Sincronizada';
-            } else if (status === 'offline') {
-                dot.className = 'w-2.5 h-2.5 bg-red-500 rounded-full';
-                text.innerText = 'SIN CONEXIÓN';
-                text.className = 'text-[8px] md:text-[10px] font-bold text-red-600 uppercase tracking-tighter';
-                dbTag.className = 'text-[7px] md:text-[9px] px-1.5 py-0.5 bg-red-50 text-red-600 rounded uppercase font-bold border border-red-100';
-                dbTag.innerText = 'DB: Desconectada';
-            } else {
-                dot.className = 'w-2.5 h-2.5 bg-yellow-500 rounded-full animate-pulse-soft';
-                text.innerText = 'RECONECTANDO...';
-            }
-
-            if (ping !== null) {
-                pingTag.innerText = `${ping}ms`;
-                pingTag.className = ping > 300 ? 'text-[7px] md:text-[9px] px-1 md:px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded font-mono' : 'text-[7px] md:text-[9px] px-1 md:px-1.5 py-0.5 bg-green-50 text-green-600 rounded font-mono';
-            }
-        }
-
-        async function checkPing() {
-            if (!navigator.onLine) {
-                updateConnectionStatus('offline');
-                return;
-            }
-            const start = Date.now();
-            try {
-                const q = query(collection(db, 'gestor_tareas'), limit(1));
-                await getDocs(q);
-                const ping = Date.now() - start;
-                updateConnectionStatus('online', ping);
-            } catch (e) {
-                updateConnectionStatus('offline');
-            }
-        }
-
-        checkPing();
-        setInterval(checkPing, 10000);
-
-        // --- Firebase Logic ---
+        // --- AUTH & DATA ---
         onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                try { await signInAnonymously(auth); } catch (e) { updateConnectionStatus('offline'); }
-            } else {
-                onSnapshot(collection(db, 'gestor_tareas'), (snapshot) => {
-                    tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    document.getElementById('loading').classList.add('hidden');
-                    
-                    if (!currentArea && document.getElementById('dashboard-view').classList.contains('hidden')) {
-                        document.getElementById('area-selection').classList.remove('hidden');
-                    }
-                    
-                    if (currentArea) window.renderTasks();
-                    if (!document.getElementById('dashboard-view').classList.contains('hidden')) {
-                        window.updateKPIs();
-                        window.initCharts();
-                    }
-                }, () => updateConnectionStatus('offline'));
-            }
+            if (!user) await signInAnonymously(auth);
+            
+            onSnapshot(collection(db, 'gestor_tareas'), (snapshot) => {
+                tasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                document.getElementById('loading').classList.add('hidden');
+                if (!currentArea && document.getElementById('dashboard-view').classList.contains('hidden')) {
+                    document.getElementById('area-selection').classList.remove('hidden');
+                }
+                renderTasks();
+                updateStats();
+            });
         });
 
-        // --- Drag & Drop (PC & Mobile) ---
-        let activeTouchTask = null;
-        let originalParent = null;
-
-        window.initTouchEvents = function(card, taskId) {
-            card.addEventListener('touchstart', (e) => {
-                if (e.target.closest('button')) return; // No drag si tocamos botones
-                activeTouchTask = taskId;
-                originalParent = card.parentElement;
-                card.classList.add('dragging');
-                
-                // Efecto de feedback háptico si es compatible
-                if (window.navigator.vibrate) window.navigator.vibrate(20);
-            }, { passive: true });
-
-            card.addEventListener('touchmove', (e) => {
-                if (!activeTouchTask) return;
-                const touch = e.touches[0];
-                card.style.position = 'fixed';
-                card.style.left = `${touch.clientX - card.offsetWidth / 2}px`;
-                card.style.top = `${touch.clientY - card.offsetHeight / 2}px`;
-                
-                // Resaltar columna destino
-                const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-                const col = elemBelow?.closest('.kanban-column');
-                document.querySelectorAll('.kanban-column').forEach(c => c.style.backgroundColor = '');
-                if (col) col.style.backgroundColor = 'rgba(0, 174, 240, 0.1)';
-            }, { passive: false });
-
-            card.addEventListener('touchend', async (e) => {
-                if (!activeTouchTask) return;
-                card.classList.remove('dragging');
-                card.style.position = '';
-                card.style.left = '';
-                card.style.top = '';
-                
-                const touch = e.changedTouches[0];
-                const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-                const col = elemBelow?.closest('.kanban-column');
-                
-                document.querySelectorAll('.kanban-column').forEach(c => c.style.backgroundColor = '');
-
-                if (col && col !== originalParent) {
-                    const newStatus = col.getAttribute('data-status');
-                    await window.updateTaskStatus(activeTouchTask, newStatus);
-                }
-                
-                activeTouchTask = null;
-                window.renderTasks(); // Re-render para asegurar orden
-            });
-        };
-
-        window.updateTaskStatus = async function(id, newStatus) {
-            try {
-                await updateDoc(doc(db, 'gestor_tareas', id), { 
-                    status: newStatus, 
-                    updatedAt: serverTimestamp() 
-                });
-            } catch (err) {
-                console.error("Error moviendo tarea", err);
-            }
-        };
-
-        // --- Funciones de UI ---
-        window.showView = function(viewId) {
+        // --- NAVIGATION ---
+        window.showView = (v) => {
             document.getElementById('area-selection').classList.add('hidden');
             document.getElementById('tasks-view').classList.add('hidden');
             document.getElementById('dashboard-view').classList.add('hidden');
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-
-            if (viewId === 'tasks') {
+            if (v === 'tasks') {
                 if (!currentArea) document.getElementById('area-selection').classList.remove('hidden');
-                else {
-                    document.getElementById('tasks-view').classList.remove('hidden');
-                    document.getElementById('nav-tasks').classList.add('active');
-                    window.renderTasks();
-                }
-            } else if (viewId === 'dashboard') {
+                else document.getElementById('tasks-view').classList.remove('hidden');
+            } else if (v === 'dashboard') {
                 document.getElementById('dashboard-view').classList.remove('hidden');
-                document.getElementById('nav-dashboard').classList.add('active');
-                window.updateKPIs();
-                window.initCharts();
+                initCharts();
             }
         };
 
-        window.selectArea = function(area) {
-            currentArea = area;
-            document.getElementById('current-area-title').innerText = area;
-            document.getElementById('area-badge').innerText = area.toUpperCase();
-            window.showView('tasks');
+        window.selectArea = (a) => {
+            currentArea = a;
+            document.getElementById('current-area-tag').innerText = a;
+            showView('tasks');
+            renderTasks();
         };
 
-        window.backToAreas = function() {
+        window.backToAreas = () => {
             currentArea = null;
-            window.showView('tasks');
+            showView('tasks');
         };
 
-        window.openTaskModal = function() {
-            document.getElementById('task-modal').classList.remove('hidden');
-            document.getElementById('task-modal').classList.add('flex');
-            if(currentArea) document.getElementById('task-area').value = currentArea;
-        };
+        // --- KANBAN MOBILE DRAG LOGIC (ROBUST) ---
+        let dragItem = null;
+        let dragId = null;
+        let startX, startY;
 
-        window.closeTaskModal = function() {
-            document.getElementById('task-modal').classList.add('hidden');
-            document.getElementById('task-modal').classList.remove('flex');
-            document.getElementById('task-form').reset();
-            document.getElementById('edit-id').value = '';
-        };
+        function setupDrag(element, id) {
+            // Mouse
+            element.ondragstart = (e) => e.dataTransfer.setData("taskId", id);
 
-        window.handleTaskSubmit = async function(e) {
-            e.preventDefault();
-            const editId = document.getElementById('edit-id').value;
-            const id = editId || Date.now().toString();
-            
-            const taskData = {
-                title: document.getElementById('task-title').value,
-                area: document.getElementById('task-area').value,
-                desc: document.getElementById('task-desc').value,
-                date: document.getElementById('task-date').value,
-                updatedAt: serverTimestamp()
-            };
+            // Touch
+            element.addEventListener('touchstart', (e) => {
+                if (e.target.closest('button')) return;
+                const touch = e.touches[0];
+                dragId = id;
+                dragItem = element;
+                startX = touch.clientX - element.offsetLeft;
+                startY = touch.clientY - element.offsetTop;
+                
+                // Feedback
+                if (navigator.vibrate) navigator.vibrate(10);
+            }, { passive: true });
 
-            if (!editId) taskData.status = 'todo';
-            window.closeTaskModal();
-            await setDoc(doc(db, 'gestor_tareas', id), taskData, { merge: true });
-        };
+            element.addEventListener('touchmove', (e) => {
+                if (!dragItem) return;
+                e.preventDefault(); // Bloquear scroll durante drag
+                const touch = e.touches[0];
+                
+                // Aplicar estilos de arrastre
+                dragItem.classList.add('dragging-active');
+                dragItem.style.width = (window.innerWidth - 40) + 'px';
+                dragItem.style.left = touch.clientX - (dragItem.offsetWidth / 2) + 'px';
+                dragItem.style.top = touch.clientY - (dragItem.offsetHeight / 2) + 'px';
 
-        window.renderTasks = function() {
+                // Check collision
+                const col = getColumnUnderPoint(touch.clientX, touch.clientY);
+                document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('column-highlight'));
+                if (col) col.classList.add('column-highlight');
+            }, { passive: false });
+
+            element.addEventListener('touchend', (e) => {
+                if (!dragItem) return;
+                const touch = e.changedTouches[0];
+                const col = getColumnUnderPoint(touch.clientX, touch.clientY);
+                
+                document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('column-highlight'));
+                
+                if (col) {
+                    const newStatus = col.getAttribute('data-status');
+                    updateTaskStatus(dragId, newStatus);
+                }
+
+                dragItem.classList.remove('dragging-active');
+                dragItem.style.position = '';
+                dragItem.style.left = '';
+                dragItem.style.top = '';
+                dragItem.style.width = '';
+                dragItem = null;
+                dragId = null;
+                
+                renderTasks(); // Refresh para limpiar basura visual
+            });
+        }
+
+        function getColumnUnderPoint(x, y) {
+            const cols = document.querySelectorAll('.kanban-column');
+            for (let col of cols) {
+                const rect = col.getBoundingClientRect();
+                if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                    return col;
+                }
+            }
+            return null;
+        }
+
+        async function updateTaskStatus(id, status) {
+            await updateDoc(doc(db, 'gestor_tareas', id), { status, updatedAt: serverTimestamp() });
+        }
+
+        // --- RENDER ---
+        function renderTasks() {
             const cols = { todo: 'col-todo', doing: 'col-doing', done: 'col-done' };
-            const counts = { todo: 'count-todo', doing: 'count-doing', done: 'count-done' };
-            Object.values(cols).forEach(id => document.getElementById(id).innerHTML = '');
+            const countLabels = { todo: 'count-todo', doing: 'count-doing', done: 'count-done' };
             
-            const areaTasks = tasks.filter(t => t.area === currentArea);
+            Object.values(cols).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
+
+            const filtered = tasks.filter(t => t.area === currentArea);
             const stats = { todo: 0, doing: 0, done: 0 };
 
-            areaTasks.forEach(t => {
-                const isOverdue = new Date(t.date) < new Date().setHours(0,0,0,0) && t.status !== 'done';
+            filtered.forEach(t => {
                 const card = document.createElement('div');
-                card.className = `task-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 ${isOverdue ? 'border-l-4 border-l-[#e41613]' : ''}`;
-                card.draggable = true;
-                card.id = `card-${t.id}`;
-                
-                // Desktop Drag
-                card.ondragstart = (e) => e.dataTransfer.setData("taskId", t.id);
-                
-                // Soporte Mobile Drag (Custom)
-                window.initTouchEvents(card, t.id);
-
+                card.className = "task-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform";
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <h4 class="font-bold text-gray-800 text-sm leading-tight">${t.title}</h4>
-                        <div class="flex space-x-1 ml-2">
-                            <button onclick="window.editTask('${t.id}')" class="text-gray-300 hover:text-accent-blue transition p-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
-                            <button onclick="window.deleteTask('${t.id}')" class="text-gray-300 hover:text-red-500 transition p-2"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path></svg></button>
-                        </div>
+                    <div class="flex justify-between items-start">
+                        <h5 class="font-bold text-gray-800 text-sm leading-tight">${t.title}</h5>
+                        <button onclick="deleteTask('${t.id}')" class="text-gray-300 p-1">
+                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path></svg>
+                        </button>
                     </div>
-                    <p class="text-[11px] text-gray-400 mb-4 line-clamp-2">${t.desc || 'Sin descripción'}</p>
-                    <div class="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
-                        <span class="${isOverdue ? 'text-red-corp' : 'text-gray-400'} flex items-center">
-                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            ${t.date}
-                        </span>
-                        <span class="bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">${t.area}</span>
+                    <p class="text-[10px] text-gray-400 mt-1 mb-3 line-clamp-1">${t.desc || '...'}</p>
+                    <div class="flex items-center text-[9px] font-black text-gray-400 uppercase tracking-tighter">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        ${t.date}
                     </div>
                 `;
+                setupDrag(card, t.id);
                 document.getElementById(cols[t.status]).appendChild(card);
                 stats[t.status]++;
             });
 
-            Object.keys(counts).forEach(k => document.getElementById(counts[k]).innerText = stats[k]);
-        };
-
-        window.editTask = function(id) {
-            const t = tasks.find(x => x.id === id);
-            if (!t) return;
-            document.getElementById('edit-id').value = t.id;
-            document.getElementById('task-title').value = t.title;
-            document.getElementById('task-area').value = t.area;
-            document.getElementById('task-desc').value = t.desc;
-            document.getElementById('task-date').value = t.date;
-            window.openTaskModal();
-        };
-
-        window.deleteTask = async function(id) {
-            if(confirm('¿Eliminar tarea de la base de datos?')) {
-                await deleteDoc(doc(db, 'gestor_tareas', id));
-            }
-        };
-
-        window.allowDrop = (ev) => ev.preventDefault();
-        window.handleDrop = async (ev, newStatus) => {
-            ev.preventDefault();
-            const id = ev.dataTransfer.getData("taskId");
-            if (id) await window.updateTaskStatus(id, newStatus);
-        };
-
-        window.updateKPIs = function() {
-            const total = tasks.length;
-            const done = tasks.filter(t => t.status === 'done').length;
-            const overdue = tasks.filter(t => new Date(t.date) < new Date().setHours(0,0,0,0) && t.status !== 'done').length;
-            document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-progress').innerText = total === 0 ? '0%' : Math.round((done/total)*100) + '%';
-            document.getElementById('kpi-overdue').innerText = overdue;
-            document.getElementById('kpi-ratio').innerText = `${tasks.filter(t => t.area === 'Alianzas').length}/${tasks.filter(t => t.area === 'CCTN').length}`;
-        };
-
-        window.initCharts = function() {
-            const statusData = ['todo', 'doing', 'done'].map(s => tasks.filter(t => t.status === s).length);
-            const areaData = ['Alianzas', 'CCTN'].map(a => tasks.filter(t => t.area === a).length);
-
-            if (barChart) barChart.destroy();
-            barChart = new Chart(document.getElementById('barChart'), {
-                type: 'bar',
-                data: {
-                    labels: ['Pendientes', 'En Curso', 'Hecho'],
-                    datasets: [{ data: statusData, backgroundColor: ['#58595b', '#00aef0', '#10b981'], borderRadius: 8 }]
-                },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            Object.keys(countLabels).forEach(k => {
+                const el = document.getElementById(countLabels[k]);
+                if (el) el.innerText = stats[k];
             });
-
-            if (pieChart) pieChart.destroy();
-            pieChart = new Chart(document.getElementById('pieChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Alianzas', 'CCTN'],
-                    datasets: [{ data: areaData, backgroundColor: ['#004a99', '#e41613'], borderWidth: 0 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
-            });
-        };
-
-        // Logo persistencia
-        const savedLogo = localStorage.getItem(LOGO_KEY);
-        if (savedLogo) {
-            const img = document.getElementById('app-logo');
-            img.src = savedLogo; img.classList.remove('hidden');
-            document.getElementById('placeholder-logo').classList.add('hidden');
         }
 
-        document.getElementById('logo-input').addEventListener('change', function(e) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                localStorage.setItem(LOGO_KEY, ev.target.result);
-                const img = document.getElementById('app-logo');
-                img.src = ev.target.result; img.classList.remove('hidden');
-                document.getElementById('placeholder-logo').classList.add('hidden');
+        // --- CRUD ---
+        window.openTaskModal = () => document.getElementById('task-modal').classList.remove('hidden');
+        window.closeTaskModal = () => document.getElementById('task-modal').classList.add('hidden');
+
+        window.saveTask = async (e) => {
+            e.preventDefault();
+            const id = Date.now().toString();
+            const data = {
+                title: document.getElementById('task-title').value,
+                area: document.getElementById('task-area').value,
+                desc: document.getElementById('task-desc').value,
+                date: document.getElementById('task-date').value,
+                status: 'todo',
+                updatedAt: serverTimestamp()
             };
-            reader.readAsDataURL(e.target.files[0]);
+            closeTaskModal();
+            await setDoc(doc(db, 'gestor_tareas', id), data);
+            document.getElementById('task-form').reset();
+        };
+
+        window.deleteTask = async (id) => {
+            if(confirm('¿Eliminar?')) await deleteDoc(doc(db, 'gestor_tareas', id));
+        };
+
+        // --- DASHBOARD ---
+        function updateStats() {
+            document.getElementById('kpi-total').innerText = tasks.length;
+            document.getElementById('kpi-done').innerText = tasks.filter(t => t.status === 'done').length;
+        }
+
+        let chart;
+        function initCharts() {
+            const ctx = document.getElementById('barChart');
+            if(chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Pend', 'Proc', 'OK'],
+                    datasets: [{
+                        label: 'Tareas',
+                        data: ['todo', 'doing', 'done'].map(s => tasks.filter(t => t.status === s).length),
+                        backgroundColor: ['#94a3b8', '#00aef0', '#10b981'],
+                        borderRadius: 6
+                    }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        // Drag handlers for desktop
+        window.addEventListener('dragover', e => e.preventDefault());
+        window.addEventListener('drop', async e => {
+            e.preventDefault();
+            const id = e.dataTransfer.getData("taskId");
+            const col = e.target.closest('.kanban-column');
+            if (id && col) {
+                const status = col.getAttribute('data-status');
+                await updateTaskStatus(id, status);
+            }
         });
+
     </script>
 </body>
 </html>
