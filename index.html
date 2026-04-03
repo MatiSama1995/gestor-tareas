@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Task Manager Mobile - CoasinLogicalis</title>
+    <title>Task Manager - CoasinLogicalis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -24,51 +24,56 @@
             transition: all 0.3s ease;
         }
         .task-card {
-            touch-action: none;
+            cursor: grab;
             user-select: none;
             -webkit-user-select: none;
             position: relative;
-            z-index: 10;
+            transition: transform 0.1s ease;
         }
-        .dragging-active {
-            position: fixed !important;
-            pointer-events: none;
-            z-index: 9999 !important;
-            transform: scale(1.05) rotate(3deg);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-            opacity: 0.9;
-        }
+        .task-card:active { cursor: grabbing; }
+        
+        .dragging { opacity: 0.5; transform: scale(0.95); }
         .column-highlight {
-            background-color: rgba(0, 174, 240, 0.15) !important;
-            border: 2px solid var(--accent-blue) !important;
+            background-color: rgba(0, 174, 240, 0.1) !important;
+            border: 2px dashed var(--accent-blue) !important;
         }
+
         .stat-card {
             background: white;
             border-radius: 1rem;
             padding: 1.25rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             border-bottom: 4px solid transparent;
         }
-        .stat-card.blue { border-bottom-color: var(--logicalis-blue); }
-        .stat-card.light-blue { border-bottom-color: var(--accent-blue); }
-        .stat-card.red { border-bottom-color: var(--corp-red); }
 
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -9px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: #e2e8f0;
-        }
-
-        @media (max-width: 640px) {
-            .container { padding-left: 1rem; padding-right: 1rem; }
-        }
         .loading-overlay {
             position: fixed; inset: 0; background: white;
             display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
+        }
+
+        .delete-hitbox {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 200;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: transparent;
+            cursor: pointer !important;
+            transition: all 0.2s;
+        }
+        .delete-hitbox:hover {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+        .delete-hitbox svg {
+            width: 18px;
+            height: 18px;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -78,19 +83,19 @@
         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-800"></div>
     </div>
 
-    <!-- Navegación Superior -->
+    <!-- Navegación -->
     <nav class="bg-white shadow-sm sticky top-0 z-[100] px-4 py-3 flex justify-between items-center">
         <div class="flex items-center space-x-3">
-            <div class="w-20 h-8 flex items-center justify-center bg-gray-50 border rounded text-[10px] font-bold text-gray-400 uppercase tracking-tighter overflow-hidden">
-                <span id="logo-text">Logicalis</span>
+            <div class="w-20 h-8 flex items-center justify-center bg-gray-50 border rounded text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                <span>Logicalis</span>
             </div>
-            <div class="flex space-x-2 border-l pl-3 overflow-x-auto">
-                <button onclick="showView('tasks')" class="nav-btn text-[10px] font-bold text-blue-900 uppercase whitespace-nowrap" data-view="tasks">Tareas</button>
-                <button onclick="showView('agenda')" class="nav-btn text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap" data-view="agenda">Agenda</button>
-                <button onclick="showView('dashboard')" class="nav-btn text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap" data-view="dashboard">Stats</button>
+            <div class="flex space-x-2 border-l pl-3">
+                <button onclick="showView('tasks')" class="nav-btn text-[10px] font-bold text-blue-900 uppercase" data-view="tasks">Tareas</button>
+                <button onclick="showView('agenda')" class="nav-btn text-[10px] font-bold text-gray-400 uppercase" data-view="agenda">Agenda</button>
+                <button onclick="showView('dashboard')" class="nav-btn text-[10px] font-bold text-gray-400 uppercase" data-view="dashboard">Stats</button>
             </div>
         </div>
-        <button onclick="openTaskModal()" class="bg-[#004a99] text-white text-[10px] font-bold px-3 py-2 rounded-lg shadow-lg active:scale-90 transition-transform">+ NUEVA</button>
+        <button onclick="openTaskModal()" class="bg-[#004a99] text-white text-[10px] font-bold px-3 py-2 rounded-lg shadow-lg active:scale-95 transition-transform">+ NUEVA</button>
     </nav>
 
     <main class="mt-4 container mx-auto">
@@ -98,15 +103,15 @@
         <!-- Selección de Área -->
         <div id="area-selection" class="hidden px-4 py-10">
             <h2 class="text-center font-black text-gray-400 uppercase tracking-widest text-xs mb-8">Selecciona Workspace</h2>
-            <div class="grid grid-cols-1 gap-4">
-                <button onclick="selectArea('Alianzas')" class="bg-white p-6 rounded-2xl shadow-sm border-2 border-transparent active:border-blue-500 flex items-center space-x-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                <button onclick="selectArea('Alianzas')" class="bg-white p-6 rounded-2xl shadow-sm border-2 border-transparent hover:border-blue-500 flex items-center space-x-4">
                     <span class="text-3xl">🤝</span>
                     <div class="text-left">
                         <h3 class="font-bold text-lg text-blue-900">Alianzas</h3>
                         <p class="text-xs text-gray-400">Gestión estratégica</p>
                     </div>
                 </button>
-                <button onclick="selectArea('CCTN')" class="bg-white p-6 rounded-2xl shadow-sm border-2 border-transparent active:border-blue-500 flex items-center space-x-4">
+                <button onclick="selectArea('CCTN')" class="bg-white p-6 rounded-2xl shadow-sm border-2 border-transparent hover:border-blue-500 flex items-center space-x-4">
                     <span class="text-3xl">⚙️</span>
                     <div class="text-left">
                         <h3 class="font-bold text-lg text-blue-900">CCTN</h3>
@@ -116,119 +121,105 @@
             </div>
         </div>
 
-        <!-- VISTA 1: TABLERO KANBAN -->
+        <!-- VISTA: TABLERO KANBAN -->
         <div id="tasks-view" class="hidden px-2">
             <div class="flex justify-between items-center mb-6 px-2">
-                <button onclick="backToAreas()" class="text-gray-400 flex items-center text-[10px] font-bold">
+                <button onclick="backToAreas()" class="text-gray-400 flex items-center text-[10px] font-bold hover:text-blue-900">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 19l-7-7 7-7"/></svg> CAMBIAR ÁREA
                 </button>
                 <span id="current-area-tag" class="bg-blue-100 text-blue-800 text-[10px] font-black px-3 py-1 rounded-full uppercase">AREA</span>
             </div>
 
-            <div class="space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="space-y-3">
-                    <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 flex justify-between">
-                        Pendientes <span id="count-todo" class="text-gray-300">0</span>
-                    </h4>
-                    <div id="col-todo" data-status="todo" class="kanban-column bg-gray-200/40 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
+                    <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 flex justify-between">Pendientes <span id="count-todo">0</span></h4>
+                    <div id="col-todo" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'todo')" data-status="todo" class="kanban-column bg-gray-200/40 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
                 </div>
 
                 <div class="space-y-3">
-                    <h4 class="text-[10px] font-black text-blue-400 uppercase tracking-widest px-2 flex justify-between">
-                        En Proceso <span id="count-doing" class="text-blue-200">0</span>
-                    </h4>
-                    <div id="col-doing" data-status="doing" class="kanban-column bg-blue-50/50 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
+                    <h4 class="text-[10px] font-black text-blue-400 uppercase tracking-widest px-2 flex justify-between">En Proceso <span id="count-doing">0</span></h4>
+                    <div id="col-doing" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'doing')" data-status="doing" class="kanban-column bg-blue-50/50 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
                 </div>
 
                 <div class="space-y-3">
-                    <h4 class="text-[10px] font-black text-green-500 uppercase tracking-widest px-2 flex justify-between">
-                        Completado <span id="count-done" class="text-green-200">0</span>
-                    </h4>
-                    <div id="col-done" data-status="done" class="kanban-column bg-green-50/50 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
+                    <h4 class="text-[10px] font-black text-green-500 uppercase tracking-widest px-2 flex justify-between">Completado <span id="count-done">0</span></h4>
+                    <div id="col-done" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'done')" data-status="done" class="kanban-column bg-green-50/50 p-3 rounded-2xl space-y-3 border-2 border-transparent"></div>
                 </div>
             </div>
         </div>
 
-        <!-- VISTA 2: AGENDA / ORDEN CRONOLÓGICO -->
+        <!-- VISTA: AGENDA -->
         <div id="agenda-view" class="hidden px-4">
-            <div class="mb-6">
-                <h1 class="text-blue-900 font-black text-xl uppercase tracking-tight">Próximos Vencimientos</h1>
-                <p class="text-[10px] text-gray-400 font-bold uppercase">Tareas pendientes ordenadas por fecha</p>
+             <div class="mb-6">
+                <h1 class="text-blue-900 font-black text-xl uppercase">Agenda de Vencimientos</h1>
             </div>
-            
-            <div id="agenda-list" class="space-y-6 ml-4 border-l-2 border-gray-100 pl-6 relative">
-                <!-- Se llena dinámicamente -->
-            </div>
+            <div id="agenda-list" class="space-y-6 ml-4 border-l-2 border-gray-100 pl-6 relative"></div>
         </div>
 
-        <!-- VISTA 3: DASHBOARD -->
+        <!-- VISTA: DASHBOARD -->
         <div id="dashboard-view" class="hidden px-4 pb-20">
-            <h1 class="text-center text-blue-900 font-black text-xl mb-8 uppercase tracking-tight">Análisis de Desempeño</h1>
-            
+            <h1 class="text-center text-blue-900 font-black text-xl mb-8 uppercase">Estadísticas</h1>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="stat-card">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Total</p>
+                <div class="stat-card border-b-blue-900">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Total</p>
                     <h3 id="kpi-total" class="text-3xl font-black text-blue-900">0</h3>
                 </div>
-                <div class="stat-card light-blue">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Progreso</p>
+                <div class="stat-card border-b-cyan-500">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Progreso</p>
                     <h3 id="kpi-progress" class="text-3xl font-black text-gray-700">0%</h3>
                 </div>
-                <div class="stat-card red">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Vencidas</p>
+                <div class="stat-card border-b-red-600">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Vencidas</p>
                     <h3 id="kpi-overdue" class="text-3xl font-black text-red-600">0</h3>
                 </div>
                 <div class="stat-card">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Distribución</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">CCTN/Alianzas</p>
                     <h3 id="kpi-ratio" class="text-xl font-black text-gray-700">0/0</h3>
                 </div>
             </div>
-
-            <div class="space-y-6">
-                <div class="bg-white p-6 rounded-3xl shadow-sm">
-                    <h4 class="text-sm font-bold text-blue-900 mb-6 uppercase tracking-tighter">Carga de Trabajo por Fecha</h4>
-                    <div class="h-48">
-                        <canvas id="lineChart"></canvas>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white p-6 rounded-3xl shadow-sm">
-                        <h4 class="text-sm font-bold text-blue-900 mb-6">Estados</h4>
-                        <div class="h-48">
-                            <canvas id="barChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-3xl shadow-sm">
-                        <h4 class="text-sm font-bold text-blue-900 mb-6">Carga por Área</h4>
-                        <div class="h-48">
-                            <canvas id="donutChart"></canvas>
-                        </div>
-                    </div>
-                </div>
+            <div class="bg-white p-6 rounded-3xl shadow-sm mb-6 h-64">
+                <canvas id="lineChart"></canvas>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-3xl shadow-sm h-64"><canvas id="barChart"></canvas></div>
+                <div class="bg-white p-6 rounded-3xl shadow-sm h-64"><canvas id="donutChart"></canvas></div>
             </div>
         </div>
     </main>
 
     <!-- Modal Tarea -->
     <div id="task-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[1000] p-4 flex items-center justify-center">
-        <div class="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl">
-            <div class="p-6">
-                <h3 class="text-lg font-bold mb-4 text-blue-900">Nueva Tarea</h3>
-                <form id="task-form" onsubmit="saveTask(event)" class="space-y-4">
-                    <input type="text" id="task-title" placeholder="¿Qué hay que hacer?" required class="w-full bg-gray-100 p-3 rounded-xl outline-none text-sm">
-                    <div class="grid grid-cols-2 gap-3">
-                        <select id="task-area" class="bg-gray-100 p-3 rounded-xl text-sm outline-none">
-                            <option value="Alianzas">Alianzas</option>
-                            <option value="CCTN">CCTN</option>
-                        </select>
-                        <input type="date" id="task-date" required class="bg-gray-100 p-3 rounded-xl text-sm outline-none">
-                    </div>
-                    <textarea id="task-desc" placeholder="Detalles (opcional)" class="w-full bg-gray-100 p-3 rounded-xl text-sm outline-none h-20"></textarea>
-                    <div class="flex space-x-2">
-                        <button type="button" onclick="closeTaskModal()" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-xs">Cancelar</button>
-                        <button type="submit" class="flex-1 bg-[#004a99] text-white py-3 rounded-xl font-bold text-xs">Guardar</button>
-                    </div>
-                </form>
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+            <h3 class="text-lg font-bold mb-4 text-blue-900">Nueva Tarea</h3>
+            <form id="task-form" onsubmit="saveTask(event)" class="space-y-4">
+                <input type="text" id="task-title" placeholder="Título" required class="w-full bg-gray-100 p-3 rounded-xl outline-none text-sm">
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="task-area" class="bg-gray-100 p-3 rounded-xl text-sm outline-none">
+                        <option value="Alianzas">Alianzas</option>
+                        <option value="CCTN">CCTN</option>
+                    </select>
+                    <input type="date" id="task-date" required class="bg-gray-100 p-3 rounded-xl text-sm outline-none">
+                </div>
+                <textarea id="task-desc" placeholder="Detalles" class="w-full bg-gray-100 p-3 rounded-xl text-sm outline-none h-20"></textarea>
+                <div class="flex space-x-2">
+                    <button type="button" onclick="closeTaskModal()" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-xs">Cancelar</button>
+                    <button type="submit" class="flex-1 bg-[#004a99] text-white py-3 rounded-xl font-bold text-xs">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación de Eliminación -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-[2000] flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-xs rounded-3xl p-8 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">¿Eliminar Tarea?</h3>
+            <p id="confirm-task-name" class="text-sm text-gray-500 mb-6 px-2 italic">Nombre de la tarea</p>
+            <div class="flex flex-col space-y-2">
+                <button id="confirm-delete-btn" class="w-full bg-red-600 text-white font-bold py-3 rounded-2xl active:scale-95 transition-transform uppercase text-xs tracking-widest">Sí, Eliminar</button>
+                <button onclick="closeConfirmModal()" class="w-full bg-gray-100 text-gray-500 font-bold py-3 rounded-2xl active:scale-95 transition-transform uppercase text-xs tracking-widest">Cancelar</button>
             </div>
         </div>
     </div>
@@ -253,259 +244,206 @@
 
         let tasks = [];
         let currentArea = null;
+        let isInitialLoad = true;
+        let taskToDeleteId = null;
 
-        // --- AUTH & DATA ---
         onAuthStateChanged(auth, async (user) => {
             if (!user) await signInAnonymously(auth);
             
             onSnapshot(collection(db, 'gestor_tareas'), (snapshot) => {
                 tasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 document.getElementById('loading').classList.add('hidden');
-                if (!currentArea && document.getElementById('dashboard-view').classList.contains('hidden') && document.getElementById('agenda-view').classList.contains('hidden')) {
-                    document.getElementById('area-selection').classList.remove('hidden');
+                
+                if (isInitialLoad) {
+                    if (!isAnyViewVisible()) {
+                        document.getElementById('area-selection').classList.remove('hidden');
+                    }
+                    isInitialLoad = false;
                 }
-                renderTasks();
-                renderAgenda();
-                updateStats();
+                refreshUI();
             });
         });
 
-        // --- NAVIGATION ---
-        window.showView = (v) => {
-            const views = ['area-selection', 'tasks-view', 'agenda-view', 'dashboard-view'];
-            views.forEach(id => document.getElementById(id).classList.add('hidden'));
-            
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.remove('text-blue-900');
-                btn.classList.add('text-gray-400');
-                if(btn.dataset.view === v) {
-                    btn.classList.remove('text-gray-400');
-                    btn.classList.add('text-blue-900');
-                }
-            });
+        function isAnyViewVisible() {
+            return !document.getElementById('tasks-view').classList.contains('hidden') || 
+                   !document.getElementById('agenda-view').classList.contains('hidden') ||
+                   !document.getElementById('dashboard-view').classList.contains('hidden');
+        }
 
-            if (v === 'tasks') {
-                if (!currentArea) document.getElementById('area-selection').classList.remove('hidden');
-                else document.getElementById('tasks-view').classList.remove('hidden');
+        function refreshUI() {
+            renderTasks();
+            renderAgenda();
+            updateStats();
+            if(!document.getElementById('dashboard-view').classList.contains('hidden')) initCharts();
+        }
+
+        window.showView = (v) => {
+            document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.replace('text-blue-900', 'text-gray-400');
+                if(b.dataset.view === v) b.classList.replace('text-gray-400', 'text-blue-900');
+            });
+            
+            if (v === 'tasks' && !currentArea) {
+                document.getElementById('area-selection').classList.remove('hidden');
             } else {
                 document.getElementById(`${v}-view`).classList.remove('hidden');
-                if(v === 'dashboard') initCharts();
-                if(v === 'agenda') renderAgenda();
             }
+            refreshUI();
         };
 
-        window.selectArea = (a) => {
-            currentArea = a;
-            document.getElementById('current-area-tag').innerText = a;
-            showView('tasks');
+        window.selectArea = (a) => { 
+            currentArea = a; 
+            document.getElementById('current-area-tag').innerText = a; 
+            showView('tasks'); 
         };
 
-        window.backToAreas = () => {
-            currentArea = null;
-            showView('tasks');
+        window.backToAreas = () => { 
+            currentArea = null; 
+            showView('tasks'); 
         };
 
-        // --- KANBAN DRAG LOGIC (MOBILE) ---
-        let dragItem = null;
-        let dragId = null;
-
-        function setupDrag(element, id) {
-            element.addEventListener('touchstart', (e) => {
-                if (e.target.closest('button')) return;
-                dragId = id;
-                dragItem = element;
-            }, { passive: true });
-
-            element.addEventListener('touchmove', (e) => {
-                if (!dragItem) return;
+        window.handleDragStart = (e, id) => {
+            if (taskToDeleteId) {
                 e.preventDefault();
-                const touch = e.touches[0];
-                dragItem.classList.add('dragging-active');
-                dragItem.style.width = (window.innerWidth - 40) + 'px';
-                dragItem.style.left = touch.clientX - (dragItem.offsetWidth / 2) + 'px';
-                dragItem.style.top = touch.clientY - (dragItem.offsetHeight / 2) + 'px';
-
-                const col = getColumnUnderPoint(touch.clientX, touch.clientY);
-                document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('column-highlight'));
-                if (col) col.classList.add('column-highlight');
-            }, { passive: false });
-
-            element.addEventListener('touchend', (e) => {
-                if (!dragItem) return;
-                const touch = e.changedTouches[0];
-                const col = getColumnUnderPoint(touch.clientX, touch.clientY);
-                document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('column-highlight'));
-                if (col) {
-                    updateTaskStatus(dragId, col.getAttribute('data-status'));
-                }
-                dragItem.classList.remove('dragging-active');
-                dragItem.style.position = ''; dragItem.style.left = ''; dragItem.style.top = ''; dragItem.style.width = '';
-                dragItem = null; dragId = null;
-                renderTasks();
-            });
-        }
-
-        function getColumnUnderPoint(x, y) {
-            const cols = document.querySelectorAll('.kanban-column');
-            for (let col of cols) {
-                const rect = col.getBoundingClientRect();
-                if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return col;
+                return;
             }
-            return null;
-        }
+            e.dataTransfer.setData("taskId", id);
+            e.target.classList.add('dragging');
+        };
+        window.handleDragEnd = (e) => {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.kanban-column').forEach(c => c.classList.remove('column-highlight'));
+        };
+        window.allowDrop = (e) => { e.preventDefault(); e.currentTarget.classList.add('column-highlight'); };
+        window.handleDrop = async (e, newStatus) => {
+            e.preventDefault();
+            const id = e.dataTransfer.getData("taskId");
+            if (id) await updateDoc(doc(db, 'gestor_tareas', id), { status: newStatus, updatedAt: serverTimestamp() });
+        };
 
-        async function updateTaskStatus(id, status) {
-            await updateDoc(doc(db, 'gestor_tareas', id), { status, updatedAt: serverTimestamp() });
-        }
+        window.openConfirmDelete = (id, title) => {
+            taskToDeleteId = id;
+            document.getElementById('confirm-task-name').innerText = title;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        };
 
-        // --- RENDERERS ---
+        window.closeConfirmModal = () => {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            taskToDeleteId = null;
+        };
+
+        // CORRECCIÓN: Acción de confirmar el borrado
+        document.getElementById('confirm-delete-btn').onclick = async () => {
+            if (taskToDeleteId) {
+                const idToProcess = taskToDeleteId;
+                // Cerramos el modal inmediatamente para mejorar UX
+                closeConfirmModal(); 
+                
+                try {
+                    await deleteDoc(doc(db, 'gestor_tareas', idToProcess));
+                } catch (err) {
+                    console.error("Error al borrar:", err);
+                    alert("Error al eliminar la tarea. Inténtalo de nuevo.");
+                }
+            }
+        };
+
         function renderTasks() {
-            const cols = { todo: 'col-todo', doing: 'col-doing', done: 'col-done' };
-            const countLabels = { todo: 'count-todo', doing: 'count-doing', done: 'count-done' };
-            Object.values(cols).forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+            const cols = ['todo', 'doing', 'done'];
+            cols.forEach(c => {
+                const el = document.getElementById(`col-${c}`);
+                if (el) el.innerHTML = '';
+            });
 
-            const filtered = tasks.filter(t => t.area === currentArea);
-            const stats = { todo: 0, doing: 0, done: 0 };
-
-            filtered.forEach(t => {
+            tasks.filter(t => t.area === currentArea).forEach(t => {
                 const card = document.createElement('div');
-                card.className = "task-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 active:scale-95 transition-transform";
+                card.className = "task-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md mb-3";
+                card.draggable = true;
+                card.ondragstart = (e) => handleDragStart(e, t.id);
+                card.ondragend = (e) => handleDragEnd(e);
+                
                 card.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <h5 class="font-bold text-gray-800 text-sm leading-tight">${t.title}</h5>
-                        <button onclick="deleteTask('${t.id}')" class="text-gray-300 p-1"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"></path></svg></button>
+                    <div class="delete-hitbox text-gray-300" 
+                         onmousedown="event.stopPropagation(); window.openConfirmDelete('${t.id}', '${t.title}')"
+                         title="Eliminar">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-1 mb-3 line-clamp-1">${t.desc || 'Sin detalles'}</p>
-                    <div class="flex items-center text-[9px] font-black text-gray-400 uppercase tracking-tighter">
-                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> ${t.date}
+                    <h5 class="font-bold text-gray-800 text-sm leading-tight pr-8 pointer-events-none">${t.title}</h5>
+                    <p class="text-[10px] text-gray-400 mt-1 mb-3 line-clamp-2 pointer-events-none">${t.desc || 'Sin descripción'}</p>
+                    <div class="flex items-center justify-between pointer-events-none">
+                        <div class="text-[9px] font-black text-gray-400 uppercase">${t.date}</div>
+                        <div class="w-2 h-2 rounded-full ${t.status === 'done' ? 'bg-green-400' : (t.status === 'doing' ? 'bg-blue-400' : 'bg-gray-300')}"></div>
                     </div>
                 `;
-                setupDrag(card, t.id);
-                document.getElementById(cols[t.status]).appendChild(card);
-                stats[t.status]++;
+
+                const col = document.getElementById(`col-${t.status}`);
+                if (col) col.appendChild(card);
             });
-            Object.keys(countLabels).forEach(k => { if(document.getElementById(countLabels[k])) document.getElementById(countLabels[k]).innerText = stats[k]; });
+
+            cols.forEach(c => {
+                const count = tasks.filter(t => t.area === currentArea && t.status === c).length;
+                if (document.getElementById(`count-${c}`)) document.getElementById(`count-${c}`).innerText = count;
+            });
+        }
+
+        window.openTaskModal = () => document.getElementById('task-modal').classList.remove('hidden');
+        window.closeTaskModal = () => document.getElementById('task-modal').classList.add('hidden');
+        window.saveTask = async (e) => {
+            e.preventDefault();
+            const id = Date.now().toString();
+            await setDoc(doc(db, 'gestor_tareas', id), {
+                title: document.getElementById('task-title').value,
+                area: document.getElementById('task-area').value,
+                desc: document.getElementById('task-desc').value,
+                date: document.getElementById('task-date').value,
+                status: 'todo', 
+                updatedAt: serverTimestamp()
+            });
+            closeTaskModal();
+            document.getElementById('task-form').reset();
+        };
+
+        function updateStats() {
+            const total = tasks.length || 0;
+            const done = tasks.filter(t => t.status === 'done').length;
+            const overdue = tasks.filter(t => t.status !== 'done' && t.date < new Date().toISOString().split('T')[0]).length;
+            if(document.getElementById('kpi-total')) document.getElementById('kpi-total').innerText = total;
+            if(document.getElementById('kpi-progress')) document.getElementById('kpi-progress').innerText = total ? `${Math.round((done/total)*100)}%` : '0%';
+            if(document.getElementById('kpi-overdue')) document.getElementById('kpi-overdue').innerText = overdue;
+            if(document.getElementById('kpi-ratio')) document.getElementById('kpi-ratio').innerText = `${tasks.filter(t => t.area === 'CCTN').length}/${tasks.filter(t => t.area === 'Alianzas').length}`;
         }
 
         function renderAgenda() {
             const container = document.getElementById('agenda-list');
             if(!container) return;
             container.innerHTML = '';
-
-            const today = new Date().toISOString().split('T')[0];
-            // Solo tareas no hechas (todo, doing) ordenadas por fecha
-            const pending = tasks
-                .filter(t => t.status !== 'done')
-                .sort((a, b) => new Date(a.date) - new Date(b.date));
-
+            const pending = tasks.filter(t => t.status !== 'done').sort((a,b) => new Date(a.date) - new Date(b.date));
             if(pending.length === 0) {
-                container.innerHTML = '<p class="text-xs text-gray-400 italic">No hay tareas pendientes en la agenda.</p>';
+                container.innerHTML = '<p class="text-xs text-gray-400 italic">No hay pendientes.</p>';
                 return;
             }
-
             pending.forEach(t => {
-                const isOverdue = t.date < today;
-                const isToday = t.date === today;
-                const colorClass = isOverdue ? 'text-red-500' : (isToday ? 'text-orange-500' : 'text-blue-900');
-                const badgeClass = isOverdue ? 'bg-red-100 text-red-600' : (isToday ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-600');
-
                 const item = document.createElement('div');
-                item.className = "relative mb-8 last:mb-0";
-                item.innerHTML = `
-                    <div class="absolute -left-[31px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white ${isOverdue ? 'bg-red-500' : 'bg-blue-500'}"></div>
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="text-[10px] font-black uppercase ${colorClass}">${t.date === today ? '¡HOY!' : t.date}</span>
-                        <span class="text-[9px] font-black px-2 py-0.5 rounded ${badgeClass}">${t.area}</span>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 ${isOverdue ? 'border-red-500' : 'border-blue-500'}">
-                        <h4 class="font-bold text-sm text-gray-800">${t.title}</h4>
-                        <p class="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-tight">${t.status === 'todo' ? 'PENDIENTE' : 'EN CURSO'}</p>
-                    </div>
-                `;
+                item.className = "relative mb-6";
+                item.innerHTML = `<div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-900"><h4 class="font-bold text-sm">${t.title}</h4><p class="text-[10px] text-gray-400 font-bold mt-1">${t.date} - ${t.area}</p></div>`;
                 container.appendChild(item);
             });
         }
 
-        // --- DASHBOARD LOGIC ---
-        function updateStats() {
-            if (tasks.length === 0) return;
-            const total = tasks.length;
-            const done = tasks.filter(t => t.status === 'done').length;
-            const overdue = tasks.filter(t => t.status !== 'done' && t.date < new Date().toISOString().split('T')[0]).length;
-            
-            document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-progress').innerText = `${Math.round((done / total) * 100)}%`;
-            document.getElementById('kpi-overdue').innerText = overdue;
-            document.getElementById('kpi-ratio').innerText = `${tasks.filter(t => t.area === 'CCTN').length}/${tasks.filter(t => t.area === 'Alianzas').length}`;
-        }
-
-        let barChart, donutChart, lineChart;
+        let charts = {};
         function initCharts() {
             const barCtx = document.getElementById('barChart');
-            const donutCtx = document.getElementById('donutChart');
-            const lineCtx = document.getElementById('lineChart');
-
-            if(barChart) barChart.destroy();
-            if(donutChart) donutChart.destroy();
-            if(lineChart) lineChart.destroy();
-
-            // 1. Estados
-            barChart = new Chart(barCtx, {
+            if(!barCtx) return;
+            if(charts.bar) charts.bar.destroy();
+            charts.bar = new Chart(barCtx, {
                 type: 'bar',
-                data: {
-                    labels: ['Pend', 'Proc', 'OK'],
-                    datasets: [{ data: [tasks.filter(t => t.status === 'todo').length, tasks.filter(t => t.status === 'doing').length, tasks.filter(t => t.status === 'done').length], backgroundColor: ['#58595b', '#00aef0', '#10b981'], borderRadius: 5 }]
-                },
+                data: { labels: ['P', 'E', 'O'], datasets: [{ data: [tasks.filter(t => t.status === 'todo').length, tasks.filter(t => t.status === 'doing').length, tasks.filter(t => t.status === 'done').length], backgroundColor: ['#58595b', '#00aef0', '#10b981'] }] },
                 options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
-
-            // 2. Dona Áreas
-            donutChart = new Chart(donutCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Alianzas', 'CCTN'],
-                    datasets: [{ data: [tasks.filter(t => t.area === 'Alianzas').length, tasks.filter(t => t.area === 'CCTN').length], backgroundColor: ['#004a99', '#e41613'], borderWidth: 0 }]
-                },
-                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { font: { size: 9 } } } } }
-            });
-
-            // 3. Linea de Tiempo (Carga por fecha)
-            const dateGroups = {};
-            tasks.filter(t => t.status !== 'done').forEach(t => { dateGroups[t.date] = (dateGroups[t.date] || 0) + 1; });
-            const sortedDates = Object.keys(dateGroups).sort();
-
-            lineChart = new Chart(lineCtx, {
-                type: 'line',
-                data: {
-                    labels: sortedDates.map(d => d.split('-').slice(1).join('/')),
-                    datasets: [{ label: 'Tareas', data: sortedDates.map(d => dateGroups[d]), borderColor: '#004a99', backgroundColor: 'rgba(0, 74, 153, 0.1)', fill: true, tension: 0.4, pointRadius: 4 }]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } }
-                }
-            });
         }
-
-        // --- CRUD ---
-        window.openTaskModal = () => document.getElementById('task-modal').classList.remove('hidden');
-        window.closeTaskModal = () => document.getElementById('task-modal').classList.add('hidden');
-        window.saveTask = async (e) => {
-            e.preventDefault();
-            const id = Date.now().toString();
-            const data = {
-                title: document.getElementById('task-title').value,
-                area: document.getElementById('task-area').value,
-                desc: document.getElementById('task-desc').value,
-                date: document.getElementById('task-date').value,
-                status: 'todo', updatedAt: serverTimestamp()
-            };
-            closeTaskModal();
-            await setDoc(doc(db, 'gestor_tareas', id), data);
-            document.getElementById('task-form').reset();
-        };
-        window.deleteTask = async (id) => { if(confirm('¿Eliminar tarea?')) await deleteDoc(doc(db, 'gestor_tareas', id)); };
     </script>
 </body>
 </html>
