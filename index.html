@@ -56,6 +56,7 @@
         }
         .delete-hitbox:hover { background: #fee2e2; color: #ef4444; }
         
+        /* Estilos Agenda Profesional */
         .agenda-table th {
             text-align: left; padding: 12px; background-color: #f1f5f9;
             color: #64748b; text-transform: uppercase; font-size: 10px; font-weight: 800;
@@ -74,14 +75,10 @@
             width: 100%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);
         }
 
+        /* Colores KPI dinámicos */
         .kpi-low { color: #ef4444; }
         .kpi-mid { color: #f59e0b; }
         .kpi-high { color: #10b981; }
-
-        .user-row:hover { background-color: #f8fafc; }
-
-        .auth-tab { border-bottom: 2px solid transparent; cursor: pointer; padding-bottom: 8px; transition: all 0.3s; }
-        .auth-tab.active { border-color: var(--logicalis-blue); color: var(--logicalis-blue); }
     </style>
 </head>
 <body class="pb-24">
@@ -89,43 +86,22 @@
     <!-- Loader -->
     <div id="loading" class="loading-overlay">
         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-800"></div>
-        <p class="mt-4 text-[10px] font-bold uppercase tracking-widest text-gray-400">Verificando...</p>
+        <p class="mt-4 text-[10px] font-bold uppercase tracking-widest text-gray-400">Cargando Análisis...</p>
     </div>
 
-    <!-- UI: AUTH (LOGIN & REGISTER) -->
+    <!-- UI: LOGIN -->
     <div id="auth-ui" class="hidden min-h-screen flex items-center justify-center bg-slate-100 px-6">
         <div class="login-card">
-            <div class="text-center mb-6">
+            <div class="text-center mb-8">
                 <div class="inline-block bg-[#004a99] text-white px-4 py-2 rounded-lg font-bold text-xl mb-2">L</div>
-                <h2 class="text-2xl font-black text-blue-900 uppercase tracking-tighter">Portal Corporativo</h2>
+                <h2 class="text-2xl font-black text-blue-900 uppercase tracking-tighter">Acceso Portal</h2>
             </div>
-
-            <!-- Tabs de Auth -->
-            <div class="flex justify-center space-x-6 mb-8 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                <button onclick="toggleAuthTab('login')" id="tab-login" class="auth-tab active">Entrar</button>
-                <button onclick="toggleAuthTab('register')" id="tab-register" class="auth-tab">Registrarse</button>
-            </div>
-
-            <!-- Login Form -->
             <form id="login-form" class="space-y-4">
                 <input type="email" id="email" placeholder="Email Corporativo" required class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-900">
                 <input type="password" id="password" placeholder="Contraseña" required class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-900">
-                <div class="text-right">
-                    <button type="button" onclick="resetPassword()" class="text-[10px] font-bold text-blue-600 uppercase hover:underline">¿Olvidaste tu contraseña?</button>
-                </div>
-                <button type="submit" class="w-full bg-[#004a99] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-800 transition-all uppercase text-xs tracking-widest">Ingresar</button>
+                <button type="submit" class="w-full bg-[#004a99] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-800 transition-all uppercase text-xs tracking-widest">Entrar</button>
             </form>
-
-            <!-- Register Form -->
-            <form id="register-form" class="space-y-4 hidden">
-                <input type="email" id="reg-email" placeholder="Email Corporativo" required class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-900">
-                <input type="password" id="reg-password" placeholder="Contraseña (mín. 6 caracteres)" required minlength="6" class="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-900">
-                <button type="submit" class="w-full bg-[#f26522] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-orange-600 transition-all uppercase text-xs tracking-widest">Crear Cuenta</button>
-                <p class="text-[9px] text-gray-400 text-center uppercase font-bold px-4 italic">Se enviará un correo de verificación obligatorio.</p>
-            </form>
-
             <p id="auth-error" class="text-red-500 text-[10px] font-bold mt-4 text-center hidden"></p>
-            <p id="auth-success" class="text-green-600 text-[10px] font-bold mt-4 text-center hidden"></p>
         </div>
     </div>
 
@@ -140,11 +116,10 @@
                     <button onclick="showView('tasks')" class="nav-btn text-[10px] font-bold text-blue-900 uppercase" data-view="tasks">Tareas</button>
                     <button onclick="showView('agenda')" class="nav-btn text-[10px] font-bold text-gray-400 uppercase" data-view="agenda">Agenda</button>
                     <button onclick="showView('dashboard')" class="nav-btn text-[10px] font-bold text-gray-400 uppercase" data-view="dashboard">Stats</button>
-                    <button id="nav-admin" onclick="showView('admin')" class="nav-btn hidden text-[10px] font-bold text-gray-400 uppercase" data-view="admin">Usuarios</button>
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                <button id="btn-new-task" onclick="openTaskModal()" class="bg-[#004a99] text-white text-[10px] font-bold px-3 py-2 rounded-lg shadow-lg active:scale-95 transition-transform">+ NUEVA</button>
+                <button onclick="openTaskModal()" class="bg-[#004a99] text-white text-[10px] font-bold px-3 py-2 rounded-lg shadow-lg active:scale-95 transition-transform">+ NUEVA</button>
                 <button onclick="logout()" class="text-gray-300 hover:text-red-500 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                 </button>
@@ -152,20 +127,12 @@
         </nav>
 
         <main class="mt-4 container mx-auto">
-            <div id="view-verify-email" class="hidden px-4 py-20 text-center">
-                <div class="max-w-md mx-auto bg-white p-10 rounded-3xl shadow-sm border border-blue-100">
-                    <span class="text-5xl block mb-6">📧</span>
-                    <h2 class="text-xl font-black text-gray-800 uppercase">Verifica tu correo</h2>
-                    <p class="text-sm text-gray-400 mt-4 font-medium italic">Hemos enviado un enlace a tu bandeja de entrada. Por seguridad, debes confirmar tu cuenta antes de continuar.</p>
-                    <button onclick="location.reload()" class="mt-8 bg-blue-900 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest">Ya lo verifiqué, recargar</button>
-                </div>
-            </div>
-
+            
             <div id="view-no-access" class="hidden px-4 py-20 text-center">
                 <div class="max-w-md mx-auto bg-white p-10 rounded-3xl shadow-sm border border-orange-100">
                     <span class="text-5xl block mb-6">🔑</span>
                     <h2 class="text-xl font-black text-gray-800 uppercase">Esperando Activación</h2>
-                    <p class="text-sm text-gray-400 mt-4 font-medium">Cuenta verificada. Por favor, contacta al administrador para que asigne tus permisos de área (Alianzas/CCTN).</p>
+                    <p class="text-sm text-gray-400 mt-4 font-medium">Contacta al administrador para asignar un área de trabajo.</p>
                 </div>
             </div>
 
@@ -189,6 +156,7 @@
                 </div>
             </div>
 
+            <!-- VISTA: TABLERO KANBAN -->
             <div id="tasks-view" class="hidden px-2">
                 <div class="flex justify-between items-center mb-6 px-2">
                     <button onclick="backToAreas()" class="text-gray-400 flex items-center text-[10px] font-bold hover:text-blue-900 transition-colors">
@@ -196,6 +164,7 @@
                     </button>
                     <span id="current-area-tag" class="bg-blue-100 text-blue-800 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">AREA</span>
                 </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="space-y-3">
                         <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 flex justify-between">Pendientes <span id="count-todo">0</span></h4>
@@ -212,15 +181,22 @@
                 </div>
             </div>
 
+            <!-- VISTA: AGENDA -->
             <div id="agenda-view" class="hidden px-4">
                 <div class="bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-100">
                     <div class="p-6 border-b border-gray-50 flex justify-between items-center">
                         <h2 class="text-blue-900 font-black text-lg uppercase tracking-tight">Cronograma de Vencimientos</h2>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Vista Global</span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="agenda-table w-full">
                             <thead>
-                                <tr><th>Actividad</th><th>Área</th><th>Fecha Límite</th><th>Estado</th></tr>
+                                <tr>
+                                    <th>Actividad</th>
+                                    <th>Área</th>
+                                    <th>Fecha Límite</th>
+                                    <th>Estado</th>
+                                </tr>
                             </thead>
                             <tbody id="agenda-list-body"></tbody>
                         </table>
@@ -228,6 +204,7 @@
                 </div>
             </div>
 
+            <!-- VISTA: DASHBOARD / STATS -->
             <div id="dashboard-view" class="hidden px-4 pb-20">
                 <div class="flex justify-between items-end mb-8">
                     <div>
@@ -235,36 +212,59 @@
                         <h1 class="text-blue-900 font-black text-2xl uppercase tracking-tighter">Métricas de Rendimiento</h1>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div class="stat-card"><p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Carga Total</p><h3 id="kpi-total" class="text-4xl font-black text-blue-900">0</h3></div>
-                    <div class="stat-card"><p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Cumplimiento KPI</p><h3 id="kpi-progress" class="text-4xl font-black">0%</h3></div>
-                    <div class="stat-card"><p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Vencidas</p><h3 id="kpi-overdue" class="text-4xl font-black text-red-600">0</h3></div>
-                    <div class="stat-card"><p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Workspaces</p><h3 id="kpi-ratio" class="text-4xl font-black text-gray-700">0</h3></div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50"><h4 class="text-[11px] font-black text-blue-900 uppercase tracking-widest mb-6 text-center">Estado de Workflows</h4><div class="h-64"><canvas id="barChart"></canvas></div></div>
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50"><h4 class="text-[11px] font-black text-blue-900 uppercase tracking-widest mb-6 text-center">Carga por Unidad</h4><div class="h-64 flex justify-center"><canvas id="areaChart"></canvas></div></div>
-                </div>
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50"><h4 class="text-[11px] font-black text-blue-900 uppercase tracking-widest mb-6 text-center">Saturación Mensual (Anual)</h4><div class="h-80"><canvas id="timeLineChart"></canvas></div></div>
-            </div>
 
-            <div id="admin-view" class="hidden px-4 pb-20">
-                <div class="bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-100">
-                    <div class="p-6 border-b border-gray-50 flex justify-between items-center"><h2 class="text-blue-900 font-black text-lg uppercase tracking-tight">Gestión de Usuarios</h2></div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead><tr class="bg-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest"><th class="p-4">Usuario</th><th class="p-4">Accesos</th><th class="p-4">Permiso</th><th class="p-4">Acciones</th></tr></thead>
-                            <tbody id="user-list-body" class="text-sm"></tbody>
-                        </table>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="stat-card">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Carga Total</p>
+                        <h3 id="kpi-total" class="text-4xl font-black text-blue-900">0</h3>
+                        <p class="text-[9px] text-gray-300 mt-1 uppercase font-bold">Tareas registradas</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Cumplimiento KPI</p>
+                        <h3 id="kpi-progress" class="text-4xl font-black transition-colors duration-500">0%</h3>
+                        <p class="text-[9px] text-gray-300 mt-1 uppercase font-bold">Tareas completadas</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Vencidas</p>
+                        <h3 id="kpi-overdue" class="text-4xl font-black text-red-600">0</h3>
+                        <p class="text-[9px] text-gray-300 mt-1 uppercase font-bold">Crítico</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Workspaces</p>
+                        <h3 id="kpi-ratio" class="text-4xl font-black text-gray-700">0</h3>
+                        <p class="text-[9px] text-gray-300 mt-1 uppercase font-bold">Áreas asignadas</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
+                        <h4 class="text-[11px] font-black text-blue-900 uppercase tracking-widest mb-6 text-center">Estado de Workflows</h4>
+                        <div class="h-64">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
+                        <h4 class="text-[11px] font-black text-blue-900 uppercase tracking-widest mb-6 text-center">Carga por Unidad</h4>
+                        <div class="h-64 flex justify-center">
+                            <canvas id="areaChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Saturación Anual por Línea -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-50">
+                    <h4 class="text-[11px] font-black text-blue-900 uppercase tracking-widest mb-6 text-center">Saturación Mensual (Anual)</h4>
+                    <div class="h-80">
+                        <canvas id="timeLineChart"></canvas>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modales -->
+    <!-- Modal Tarea -->
     <div id="task-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[1000] p-4 flex items-center justify-center">
-        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+        <div class="bg-white w-full max-sm rounded-2xl p-6 shadow-2xl">
             <h3 class="text-lg font-bold mb-4 text-blue-900 uppercase tracking-tighter">Nueva Tarea</h3>
             <form id="task-form" onsubmit="saveTask(event)" class="space-y-4">
                 <input type="text" id="task-title" placeholder="Título" required class="w-full bg-gray-100 p-3 rounded-xl outline-none text-sm border focus:border-blue-900">
@@ -284,32 +284,7 @@
         </div>
     </div>
 
-    <div id="user-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-[1000] p-4 flex items-center justify-center">
-        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
-            <h3 class="text-lg font-bold mb-4 text-blue-900 uppercase tracking-tighter">Configurar Usuario</h3>
-            <p id="edit-user-email" class="text-[10px] font-black text-gray-400 mb-6 uppercase tracking-widest"></p>
-            <div class="space-y-6">
-                <div>
-                    <p class="text-[10px] font-black text-gray-800 uppercase mb-3">Workspaces Asignados</p>
-                    <div class="flex gap-4">
-                        <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" id="check-alianzas" class="w-4 h-4"><span class="text-xs font-bold text-gray-600 uppercase">Alianzas</span></label>
-                        <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" id="check-cctn" class="w-4 h-4"><span class="text-xs font-bold text-gray-600 uppercase">CCTN</span></label>
-                    </div>
-                </div>
-                <div>
-                    <select id="edit-user-can-edit" class="w-full bg-gray-100 p-3 rounded-xl text-xs font-bold outline-none border">
-                        <option value="true">EDITOR</option>
-                        <option value="false">LECTOR</option>
-                    </select>
-                </div>
-                <div class="flex space-x-2">
-                    <button onclick="closeUserModal()" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-xs uppercase">Cancelar</button>
-                    <button onclick="saveUserConfig()" class="flex-1 bg-[#004a99] text-white py-3 rounded-xl font-bold text-xs uppercase shadow-lg">Aplicar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <!-- Confirmación -->
     <div id="confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-[2000] flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-xs rounded-3xl p-8 shadow-2xl text-center">
             <h3 class="text-lg font-bold text-gray-900 mb-2 uppercase tracking-tighter">¿Eliminar Tarea?</h3>
@@ -323,7 +298,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, onSnapshot, updateDoc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -340,64 +315,18 @@
         const db = getFirestore(app);
 
         let tasks = [];
-        let users = [];
         let currentUser = null;
         let currentArea = null;
         let activeView = 'tasks';
         let charts = {};
-        let unsubscribeTasks = null;
-        let unsubscribeUsers = null;
-        let userToEditId = null;
-
-        // AUTH FUNCTIONS
-        window.toggleAuthTab = (type) => {
-            document.getElementById('auth-error').classList.add('hidden');
-            document.getElementById('auth-success').classList.add('hidden');
-            if(type === 'login') {
-                document.getElementById('login-form').classList.remove('hidden');
-                document.getElementById('register-form').classList.add('hidden');
-                document.getElementById('tab-login').classList.add('active');
-                document.getElementById('tab-register').classList.remove('active');
-            } else {
-                document.getElementById('login-form').classList.add('hidden');
-                document.getElementById('register-form').classList.remove('hidden');
-                document.getElementById('tab-login').classList.remove('active');
-                document.getElementById('tab-register').classList.add('active');
-            }
-        };
-
-        window.resetPassword = async () => {
-            const email = document.getElementById('email').value;
-            const errEl = document.getElementById('auth-error');
-            const succEl = document.getElementById('auth-success');
-            errEl.classList.add('hidden');
-            succEl.classList.add('hidden');
-            if(!email) {
-                errEl.innerText = "Ingresa tu email primero para resetear la contraseña.";
-                errEl.classList.remove('hidden');
-                return;
-            }
-            try {
-                await sendPasswordResetEmail(auth, email);
-                succEl.innerText = "Enlace enviado. Revisa tu correo.";
-                succEl.classList.remove('hidden');
-            } catch (err) {
-                errEl.innerText = "Error al enviar el enlace.";
-                errEl.classList.remove('hidden');
-            }
-        };
 
         onAuthStateChanged(auth, (user) => {
             document.getElementById('loading').classList.add('hidden');
             if (user) {
                 document.getElementById('auth-ui').classList.add('hidden');
                 document.getElementById('app-ui').classList.remove('hidden');
-                if (!user.emailVerified) { showView('verify-email'); return; }
                 listenProfile(user);
             } else {
-                if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; }
-                if (unsubscribeUsers) { unsubscribeUsers(); unsubscribeUsers = null; }
-                currentUser = null;
                 document.getElementById('app-ui').classList.add('hidden');
                 document.getElementById('auth-ui').classList.remove('hidden');
             }
@@ -407,52 +336,46 @@
             onSnapshot(doc(db, 'usuarios', user.uid), (snap) => {
                 if (snap.exists()) {
                     const data = snap.data();
-                    currentUser = { ...data, id: user.uid, access: data.access || [], canEdit: data.canEdit !== undefined ? data.canEdit : true };
-                    document.getElementById('nav-admin').classList.toggle('hidden', currentUser.role !== 'admin');
-                    document.getElementById('btn-new-task').classList.toggle('hidden', !currentUser.canEdit);
+                    const rawAccess = data.access || data.acces || [];
+                    currentUser = {
+                        ...data,
+                        access: Array.isArray(rawAccess) ? rawAccess : Object.values(rawAccess)
+                    };
                     checkUIStates();
-                    if (currentUser.access.length > 0 && !unsubscribeTasks) listenTasks();
-                    if (currentUser.role === 'admin' && !unsubscribeUsers) listenUsers();
-                } else { showView('no-access'); }
+                    if (currentUser.access.length > 0) listenTasks();
+                } else {
+                    document.getElementById('view-no-access').classList.remove('hidden');
+                }
             });
         }
 
         function listenTasks() {
-            if (unsubscribeTasks) unsubscribeTasks();
-            unsubscribeTasks = onSnapshot(collection(db, 'gestor_tareas'), (snapshot) => {
+            onSnapshot(collection(db, 'gestor_tareas'), (snapshot) => {
                 tasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                 refreshUI();
             });
         }
 
-        function listenUsers() {
-            if (unsubscribeUsers) unsubscribeUsers();
-            unsubscribeUsers = onSnapshot(collection(db, 'usuarios'), (snapshot) => {
-                users = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (activeView === 'admin') renderUsers();
-            });
-        }
-
         function checkUIStates() {
             document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden'));
-            if (activeView === 'verify-email') { document.getElementById('view-verify-email').classList.remove('hidden'); return; }
-            if (activeView === 'no-access') { document.getElementById('view-no-access').classList.remove('hidden'); return; }
             if (activeView === 'tasks') {
                 if (!currentArea) {
                     document.getElementById('area-selection').classList.remove('hidden');
-                    document.getElementById('sel-Alianzas').classList.toggle('hidden', !currentUser?.access?.includes('Alianzas'));
-                    document.getElementById('sel-CCTN').classList.toggle('hidden', !currentUser?.access?.includes('CCTN'));
-                } else { document.getElementById('tasks-view').classList.remove('hidden'); }
-            } else { const target = document.getElementById(`${activeView}-view`); if (target) target.classList.remove('hidden'); }
+                    document.getElementById('sel-Alianzas').classList.toggle('hidden', !currentUser.access.includes('Alianzas'));
+                    document.getElementById('sel-CCTN').classList.toggle('hidden', !currentUser.access.includes('CCTN'));
+                } else {
+                    document.getElementById('tasks-view').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById(`${activeView}-view`).classList.remove('hidden');
+            }
         }
 
         function refreshUI() {
-            if (!currentUser) return;
             renderTasks();
             renderAgenda();
             updateStats();
             if(activeView === 'dashboard') initCharts();
-            if(activeView === 'admin') renderUsers();
         }
 
         window.showView = (v) => {
@@ -470,74 +393,193 @@
 
         function renderTasks() {
             if(!currentArea) return;
-            ['todo', 'doing', 'done'].forEach(c => { const el = document.getElementById(`col-${c}`); if (el) el.innerHTML = ''; });
+            const cols = ['todo', 'doing', 'done'];
+            cols.forEach(c => document.getElementById(`col-${c}`).innerHTML = '');
             tasks.filter(t => t.area === currentArea).forEach(t => {
                 const card = document.createElement('div');
-                card.className = "task-card bg-white p-4 rounded-xl shadow-sm border mb-3";
-                if (currentUser.canEdit) {
-                    card.draggable = true;
-                    card.ondragstart = (e) => { e.dataTransfer.setData("taskId", t.id); e.target.classList.add('dragging'); };
-                    card.ondragend = (e) => e.target.classList.remove('dragging');
-                }
-                const del = (currentUser.canEdit || currentUser.role === 'admin') ? `<div class="delete-hitbox text-gray-200" onmousedown="event.stopPropagation(); window.openConfirmDelete('${t.id}', '${t.title}')"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg></div>` : '';
-                card.innerHTML = `${del}<h5 class="font-bold text-gray-800 text-sm uppercase pr-8">${t.title}</h5><p class="text-[10px] text-gray-400 mt-1">${t.desc || ''}</p><div class="flex justify-between mt-3 items-center"><div class="text-[9px] font-black text-gray-300 uppercase">${t.date}</div><div class="w-2 h-2 rounded-full ${t.status === 'done' ? 'bg-green-400' : (t.status === 'doing' ? 'bg-blue-400' : 'bg-gray-200')}"></div></div>`;
+                card.className = "task-card bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-3";
+                card.draggable = true;
+                card.ondragstart = (e) => { e.dataTransfer.setData("taskId", t.id); e.target.classList.add('dragging'); };
+                card.ondragend = (e) => e.target.classList.remove('dragging');
+                card.innerHTML = `
+                    <div class="delete-hitbox text-gray-200" onmousedown="event.stopPropagation(); window.openConfirmDelete('${t.id}', '${t.title}')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </div>
+                    <h5 class="font-bold text-gray-800 text-sm uppercase tracking-tight pr-8">${t.title}</h5>
+                    <p class="text-[10px] text-gray-400 mt-1 mb-3 line-clamp-2">${t.desc || 'Sin descripción'}</p>
+                    <div class="flex items-center justify-between">
+                        <div class="text-[9px] font-black text-gray-300 uppercase">${t.date}</div>
+                        <div class="w-2 h-2 rounded-full ${t.status === 'done' ? 'bg-green-400' : (t.status === 'doing' ? 'bg-blue-400' : 'bg-gray-200')}"></div>
+                    </div>
+                `;
                 document.getElementById(`col-${t.status}`).appendChild(card);
             });
-            ['todo', 'doing', 'done'].forEach(c => { document.getElementById(`count-${c}`).innerText = tasks.filter(t => t.area === currentArea && t.status === c).length; });
+            cols.forEach(c => document.getElementById(`count-${c}`).innerText = tasks.filter(t => t.area === currentArea && t.status === c).length);
         }
 
         function renderAgenda() {
             const body = document.getElementById('agenda-list-body');
-            if(!body) return; body.innerHTML = '';
-            const list = tasks.filter(t => t.status !== 'done' && currentUser.access.includes(t.area)).sort((a,b) => new Date(a.date) - new Date(b.date));
-            list.forEach(t => {
+            if(!body) return;
+            body.innerHTML = '';
+            const pending = tasks.filter(t => t.status !== 'done' && currentUser.access.includes(t.area))
+                                 .sort((a,b) => new Date(a.date) - new Date(b.date));
+            const today = new Date(); today.setHours(0,0,0,0);
+            pending.forEach(t => {
+                const taskDate = new Date(t.date); taskDate.setHours(0,0,0,0);
+                const diffTime = taskDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                let sClass = "status-safe", sText = "A tiempo";
+                if (diffDays <= 0) { sClass = "status-urgent"; sText = diffDays === 0 ? "Hoy" : "Vencido"; }
+                else if (diffDays <= 3) { sClass = "status-warning"; sText = `${diffDays}d`; }
                 const row = document.createElement('tr');
-                row.innerHTML = `<td><div class="font-bold text-gray-800 text-sm uppercase">${t.title}</div></td><td><span class="text-[10px] font-black text-blue-900 uppercase">${t.area}</span></td><td class="text-xs font-bold text-gray-600">${t.date}</td><td><span class="status-pill status-safe">En plazo</span></td>`;
+                row.innerHTML = `<td><div class="font-bold text-gray-800 text-sm uppercase tracking-tight">${t.title}</div></td><td><span class="text-[10px] font-black text-blue-900 uppercase">${t.area}</span></td><td class="text-xs font-bold text-gray-600">${t.date}</td><td><span class="status-pill ${sClass}">${sText}</span></td>`;
                 body.appendChild(row);
             });
         }
-
-        function renderUsers() {
-            const body = document.getElementById('user-list-body');
-            if(!body) return; body.innerHTML = '';
-            users.forEach(u => {
-                const row = document.createElement('tr');
-                row.className = "border-b text-xs";
-                row.innerHTML = `<td class="p-4"><b>${u.email}</b></td><td class="p-4">${(u.access || []).join(', ')}</td><td class="p-4">${u.canEdit ? 'EDITOR' : 'LECTOR'}</td><td class="p-4"><button onclick="window.openUserEdit('${u.id}')" class="text-blue-500 font-bold">Config</button></td>`;
-                body.appendChild(row);
-            });
-        }
-
-        window.openUserEdit = (uid) => { userToEditId = uid; const u = users.find(u => u.id === uid); document.getElementById('edit-user-email').innerText = u.email; document.getElementById('check-alianzas').checked = u.access.includes('Alianzas'); document.getElementById('check-cctn').checked = u.access.includes('CCTN'); document.getElementById('edit-user-can-edit').value = u.canEdit.toString(); document.getElementById('user-modal').classList.remove('hidden'); };
-        window.closeUserModal = () => document.getElementById('user-modal').classList.add('hidden');
-        window.saveUserConfig = async () => { const acc = []; if(document.getElementById('check-alianzas').checked) acc.push('Alianzas'); if(document.getElementById('check-cctn').checked) acc.push('CCTN'); await updateDoc(doc(db, 'usuarios', userToEditId), { access: acc, canEdit: document.getElementById('edit-user-can-edit').value === "true" }); closeUserModal(); };
 
         function updateStats() {
-            const my = tasks.filter(t => currentUser.access.includes(t.area));
-            document.getElementById('kpi-total').innerText = my.length;
-            document.getElementById('kpi-ratio').innerText = currentUser.access.length;
+            const myTasks = tasks.filter(t => currentUser.access.includes(t.area));
+            const total = myTasks.length;
+            const done = myTasks.filter(t => t.status === 'done').length;
+            const pct = total ? Math.round((done/total)*100) : 0;
+            const overdue = myTasks.filter(t => t.status !== 'done' && t.date < new Date().toISOString().split('T')[0]).length;
+            
+            const kpiProgress = document.getElementById('kpi-progress');
+            if(kpiProgress) {
+                kpiProgress.innerText = `${pct}%`;
+                kpiProgress.className = `text-4xl font-black ${pct > 80 ? 'kpi-high' : (pct > 50 ? 'kpi-mid' : 'kpi-low')}`;
+            }
+            if(document.getElementById('kpi-total')) document.getElementById('kpi-total').innerText = total;
+            if(document.getElementById('kpi-overdue')) document.getElementById('kpi-overdue').innerText = overdue;
+            if(document.getElementById('kpi-ratio')) document.getElementById('kpi-ratio').innerText = currentUser.access.length;
         }
 
         function initCharts() {
-            const my = tasks.filter(t => currentUser.access.includes(t.area));
+            const myTasks = tasks.filter(t => currentUser.access.includes(t.area));
+            
+            // Bar Chart
+            const barCtx = document.getElementById('barChart');
             if(charts.bar) charts.bar.destroy();
-            charts.bar = new Chart(document.getElementById('barChart'), { type: 'bar', data: { labels: ['Pendiente', 'Proceso', 'Hecho'], datasets: [{ data: [my.filter(t=>t.status==='todo').length, my.filter(t=>t.status==='doing').length, my.filter(t=>t.status==='done').length], backgroundColor: ['#cbd5e1', '#00aef0', '#10b981'] }] }, options: { maintainAspectRatio: false } });
+            charts.bar = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Todo', 'Doing', 'Done'],
+                    datasets: [{ data: [myTasks.filter(t=>t.status==='todo').length, myTasks.filter(t=>t.status==='doing').length, myTasks.filter(t=>t.status==='done').length], backgroundColor: ['#cbd5e1', '#00aef0', '#10b981'], borderRadius: 8 }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            // Area Chart
+            const areaCtx = document.getElementById('areaChart');
+            if(charts.area) charts.area.destroy();
+            charts.area = new Chart(areaCtx, {
+                type: 'doughnut',
+                data: { labels: ['Alianzas', 'CCTN'], datasets: [{ data: [myTasks.filter(t=>t.area==='Alianzas').length, myTasks.filter(t=>t.area==='CCTN').length], backgroundColor: ['#004a99', '#f26522'], borderWidth: 0, cutout: '75%' }] },
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // LÓGICA DE SATURACIÓN MENSUAL (VOLVER A LÍNEA CON TODOS LOS MESES)
+            const timeCtx = document.getElementById('timeLineChart');
+            if(charts.time) charts.time.destroy();
+            
+            const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+            const currentYear = new Date().getFullYear();
+            
+            // Inicializar todos los meses con 0
+            const fullYearData = Array(12).fill(0);
+            
+            // Llenar con datos reales solo del año actual
+            myTasks.forEach(t => {
+                const dateObj = new Date(t.date);
+                if (dateObj.getFullYear() === currentYear) {
+                    const monthIndex = dateObj.getMonth();
+                    fullYearData[monthIndex]++;
+                }
+            });
+
+            charts.time = new Chart(timeCtx, {
+                type: 'line',
+                data: {
+                    labels: monthNames,
+                    datasets: [{
+                        label: 'Saturación',
+                        data: fullYearData,
+                        borderColor: '#004a99',
+                        backgroundColor: 'rgba(0, 74, 153, 0.05)',
+                        borderWidth: 4,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#004a99',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            titleFont: { size: 12, weight: 'bold' },
+                            bodyFont: { size: 11 },
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: (context) => `Tareas: ${context.raw}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: '#f1f5f9' }, 
+                            ticks: { stepSize: 1, color: '#94a3b8' } 
+                        },
+                        x: { 
+                            grid: { display: false }, 
+                            ticks: { color: '#475569', font: { weight: 'bold', size: 10 } } 
+                        }
+                    }
+                }
+            });
         }
 
         window.allowDrop = (e) => e.preventDefault();
-        window.handleDrop = async (e, s) => { e.preventDefault(); if(!currentUser.canEdit) return; const id = e.dataTransfer.getData("taskId"); if(id) await updateDoc(doc(db, 'gestor_tareas', id), { status: s, updatedAt: serverTimestamp() }); };
+        window.handleDrop = async (e, newStatus) => {
+            e.preventDefault();
+            const id = e.dataTransfer.getData("taskId");
+            if (id) await updateDoc(doc(db, 'gestor_tareas', id), { status: newStatus, updatedAt: serverTimestamp() });
+        };
 
         window.openTaskModal = () => { document.getElementById('task-modal').classList.remove('hidden'); if(currentArea) document.getElementById('task-area').value = currentArea; };
         window.closeTaskModal = () => document.getElementById('task-modal').classList.add('hidden');
-        window.saveTask = async (e) => { e.preventDefault(); const id = Date.now().toString(); await setDoc(doc(db, 'gestor_tareas', id), { title: document.getElementById('task-title').value, area: document.getElementById('task-area').value, desc: document.getElementById('task-desc').value, date: document.getElementById('task-date').value, status: 'todo', updatedAt: serverTimestamp() }); closeTaskModal(); document.getElementById('task-form').reset(); };
+        window.saveTask = async (e) => {
+            e.preventDefault();
+            const id = Date.now().toString();
+            await setDoc(doc(db, 'gestor_tareas', id), {
+                title: document.getElementById('task-title').value,
+                area: document.getElementById('task-area').value,
+                desc: document.getElementById('task-desc').value,
+                date: document.getElementById('task-date').value,
+                status: 'todo', updatedAt: serverTimestamp()
+            });
+            closeTaskModal(); document.getElementById('task-form').reset();
+        };
 
         window.openConfirmDelete = (id, title) => { window.taskToDeleteId = id; document.getElementById('confirm-task-name').innerText = title; document.getElementById('confirm-modal').classList.remove('hidden'); };
         window.closeConfirmModal = () => document.getElementById('confirm-modal').classList.add('hidden');
-        document.getElementById('confirm-delete-btn').onclick = async () => { await deleteDoc(doc(db, 'gestor_tareas', window.taskToDeleteId)); closeConfirmModal(); };
+        document.getElementById('confirm-delete-btn').onclick = async () => { if (window.taskToDeleteId) { await deleteDoc(doc(db, 'gestor_tareas', window.taskToDeleteId)); closeConfirmModal(); } };
 
-        document.getElementById('login-form').onsubmit = async (e) => { e.preventDefault(); document.getElementById('loading').classList.remove('hidden'); try { await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value); } catch (err) { document.getElementById('loading').classList.add('hidden'); document.getElementById('auth-error').innerText = "Credenciales inválidas."; document.getElementById('auth-error').classList.remove('hidden'); } };
-        document.getElementById('register-form').onsubmit = async (e) => { e.preventDefault(); document.getElementById('loading').classList.remove('hidden'); const mail = document.getElementById('reg-email').value; try { const res = await createUserWithEmailAndPassword(auth, mail, document.getElementById('reg-password').value); await sendEmailVerification(res.user); await setDoc(doc(db, 'usuarios', res.user.uid), { email: mail, access: [], role: 'user', canEdit: false, createdAt: serverTimestamp() }); document.getElementById('loading').classList.add('hidden'); document.getElementById('auth-success').innerText = "Verifica tu email."; document.getElementById('auth-success').classList.remove('hidden'); toggleAuthTab('login'); } catch (err) { document.getElementById('loading').classList.add('hidden'); } };
+        document.getElementById('login-form').onsubmit = async (e) => {
+            e.preventDefault();
+            try { await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value); }
+            catch (err) { const errEl = document.getElementById('auth-error'); errEl.innerText = "Credenciales inválidas."; errEl.classList.remove('hidden'); }
+        };
+
         window.logout = () => { signOut(auth); currentArea = null; activeView = 'tasks'; };
+
     </script>
 </body>
 </html>
